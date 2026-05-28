@@ -4645,7 +4645,7 @@ const DOVYDAS_BASELINE_SESSIONS = [
 const VALID_INVITE_CODES = [
    { code: "DK-DOVYDAS-2026", note: "Dovydas (savininkas)" },
   { code: "DK-JURGIS-2026", note: "JURGIS #1" },
-  { code: "DK-RYTIS-002", note: "RYTIS #2" },
+  { code: "DK-RYTIS-2026", note: "RYTIS #2" },
   { code: "DK-TEAM-003", note: "Komandos draugas #3" },
   { code: "DK-TEAM-004", note: "Komandos draugas #4" },
 
