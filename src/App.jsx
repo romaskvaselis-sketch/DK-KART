@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 
-if (typeof window !== 'undefined' && !window.storage) {
+if (typeof window !== "undefined" && !window.storage) {
   window.storage = {
     async get(key) { try { const v = localStorage.getItem(key); return v !== null ? {key, value:v} : null; } catch { return null; } },
     async set(key, value) { try { localStorage.setItem(key, value); return {key, value}; } catch (e) { throw e; } },
@@ -2037,7 +2037,7 @@ function SetupWizard({ initialProfile, onComplete, onSkip }) {
               </div>
               
               <label style={wizardStyles.label}>Vardas, pavardė</label>
-              <input style={wizardStyles.input} value={p.driverName} onChange={(e) => upd("driverName", e.target.value)} placeholder="pvz. Dovydas Jonaitis" />
+              <input style={wizardStyles.input} value={p.driverName} onChange={(e) => upd("driverName", e.target.value)} placeholder="Vardas Pavardė" />
               
               <label style={{ ...wizardStyles.label, marginTop: 14 }}>Gimimo metai (nebūtina)</label>
               <input style={wizardStyles.input} type="number" value={p.birthYear || ""} onChange={(e) => upd("birthYear", e.target.value)} placeholder="pvz. 2008" />
@@ -2435,6 +2435,153 @@ function LapCommentsSection({ lapComments, lapCount, onChange, sessionId, videoK
 // ============================================================
 // FORMA
 // ============================================================
+
+/**
+ * CollapsibleSection — sutraukiamas blokas formoje.
+ * Saugo state'ą per visus sesijos render'us.
+ * Reaguoja į forceState propą (jei perduotas) — naudojama "Open all / Close all" mygtukuose.
+ * 
+ * progress: { filled, total } — rodo užpildymo statusą
+ * sectionId: stringas elementui id (skip-to navigacijai)
+ */
+function CollapsibleSection({ title, icon, badge, children, defaultOpen = false, hasError = false, forceState = null, progress = null, sectionId = null }) {
+  const [open, setOpen] = useState(defaultOpen);
+  
+  // Jei perduotas force state — naudoja jį
+  useEffect(() => {
+    if (forceState === "open") setOpen(true);
+    else if (forceState === "closed") setOpen(false);
+  }, [forceState]);
+  
+  // Progress percentage
+  const progressPct = progress && progress.total > 0 
+    ? Math.round((progress.filled / progress.total) * 100)
+    : null;
+  
+  return (
+    <div id={sectionId} style={{ marginBottom: 8, border: `1px solid ${hasError ? C.danger : C.border}`, borderRadius: 10, background: C.card, overflow: "hidden", scrollMarginTop: 80 }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: "100%",
+          padding: "12px 14px",
+          background: "transparent",
+          border: "none",
+          color: C.text,
+          fontSize: 14,
+          fontWeight: 700,
+          fontFamily: "'Bebas Neue', sans-serif",
+          letterSpacing: 1.5,
+          textTransform: "uppercase",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          cursor: "pointer",
+          textAlign: "left",
+          position: "relative",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+          {icon && <span style={{ fontSize: 16 }}>{icon}</span>}
+          <span>{title}</span>
+          {badge && (
+            <span style={{ 
+              padding: "2px 6px", 
+              background: hasError ? C.danger : C.accent + "22",
+              color: hasError ? "#fff" : C.accent,
+              borderRadius: 99,
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: 0.5,
+            }}>{badge}</span>
+          )}
+          {progressPct !== null && (
+            <span style={{ 
+              fontSize: 10,
+              color: progressPct === 100 ? C.good : (progressPct >= 50 ? C.accent : C.muted),
+              fontWeight: 700,
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: 0,
+              marginLeft: "auto",
+              marginRight: 8,
+            }}>
+              {progress.filled}/{progress.total}
+            </span>
+          )}
+        </span>
+        <span style={{ fontSize: 12, color: C.muted, transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+      </button>
+      
+      {/* Progress bar */}
+      {progressPct !== null && progressPct > 0 && (
+        <div style={{ height: 2, background: C.border, position: "relative" }}>
+          <div style={{ 
+            height: "100%",
+            width: `${progressPct}%`,
+            background: progressPct === 100 ? C.good : C.accent,
+            transition: "width 0.3s",
+          }} />
+        </div>
+      )}
+      
+      {open && (
+        <div style={{ padding: "0 14px 14px 14px", borderTop: `1px solid ${C.border}` }}>
+          <div style={{ paddingTop: 14 }}>
+            {children}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Swipe-to-back gesture handler hook.
+ * Detekas svaipą iš kairės į dešinę → triggerina onBack.
+ */
+function useSwipeBack(onBack, enabled = true) {
+  useEffect(() => {
+    if (!enabled) return;
+    let startX = 0, startY = 0, startTime = 0;
+    let active = false;
+    
+    const onTouchStart = (e) => {
+      // Tik jei svaipas pradedamas iš pat kairio krašto (60px nuo kairės)
+      if (e.touches[0].clientX > 60) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+      active = true;
+    };
+    
+    const onTouchEnd = (e) => {
+      if (!active) return;
+      active = false;
+      
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const dx = endX - startX;
+      const dy = Math.abs(endY - startY);
+      const dt = Date.now() - startTime;
+      
+      // Svaipas turi būti:
+      // - iš kairės į dešinę (dx > 80)
+      // - horizontalus (dy < 50)
+      // - greitas (< 500ms)
+      if (dx > 80 && dy < 50 && dt < 500) {
+        onBack();
+      }
+    };
+    
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [onBack, enabled]);
+}
+
 function SessionForm({ session, history, profile, onSave, onCancel }) {
   // Determine brake config from engine profile
   const hasFrontBrakes = profile ? engineHasFrontBrakes(profile.engineFamily, profile.engineModel) : false;
@@ -2444,7 +2591,7 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
   
   const [s, setS] = useState(session || {
     id: stableId,
-    date: TODAY, time: "", track: "Anykščiai", driver: "Dovydas",
+    date: TODAY, time: "", track: profile?.homeTrack || "", driver: profile?.driverName || "",
     sessionType: "training", // "training" | "race_event" — turi įtakos dalijimui
     airTemp: "", pressure: 1020, humidity: "", weather: "Sausa", trackTemp: "",
     tireBrand: "Mojo D5", tireAge: "",
@@ -2486,8 +2633,52 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
     photos: {},
   });
   const [importStatus, setImportStatus] = useState(null);
+  const [dirty, setDirty] = useState(false);
+  const [sectionsForceState, setSectionsForceState] = useState(null);
   
-  const upd = (k, v) => setS({ ...s, [k]: v });
+  // Reset force state after applying
+  useEffect(() => {
+    if (sectionsForceState !== null) {
+      const t = setTimeout(() => setSectionsForceState(null), 100);
+      return () => clearTimeout(t);
+    }
+  }, [sectionsForceState]);
+  
+  // Progress per section — skaičiuoja, kiek esminių laukų užpildyta
+  const progress = useMemo(() => {
+    const filled = (v) => v !== "" && v !== null && v !== undefined;
+    return {
+      base: { filled: [s.date, s.time, s.track, s.driver, s.sessionType].filter(filled).length, total: 5 },
+      conditions: { filled: [s.airTemp, s.trackTemp, s.pressure, s.weather].filter(filled).length, total: 4 },
+      tires: { filled: [s.tireBrand, s.cold_F, s.cold_R, s.hot_F, s.hot_R, s.tireAge].filter(filled).length, total: 6 },
+      chassis: { filled: [s.toe, s.camber, s.caster, s.trackWidthR, s.seatPos].filter(filled).length, total: 5 },
+      engine: { filled: [s.gear_F, s.gear_R, s.mainJet, s.needle].filter(filled).length, total: 4 },
+      telemetry: { filled: [s.bestLap, s.avgLap, s.lapCount, s.rpmNearTop, s.topSpeedP99].filter(filled).length, total: 5 },
+      notes: { filled: [s.notes].filter(filled).length, total: 1 },
+    };
+  }, [s]);
+  
+  // Required fields check — minimalus rinkinys, kad sesija būtų naudinga
+  const validation = useMemo(() => {
+    const errors = {};
+    if (!s.date) errors.base = "Trūksta datos";
+    if (!s.driver) errors.base = "Trūksta vairuotojo";
+    if (!s.bestLap) errors.telemetry = "Trūksta geriausio rato";
+    return errors;
+  }, [s.date, s.driver, s.bestLap]);
+  
+  // Skip to section
+  const scrollToSection = (sectionId) => {
+    setSectionsForceState("open");
+    setTimeout(() => {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 150);
+  };
+  
+  const upd = (k, v) => { setDirty(true); setS({ ...s, [k]: v }); };
   const numOrNull = (v) => (v === "" || v === null) ? null : parseFloat(v);
 
   const handleCSVImport = async (e) => {
@@ -2567,8 +2758,70 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
     return generateRecommendations(sNum, history);
   }, [s, history]);
   
+  // Smart back handler — paklausia jei buvo pakeitimų
+  const handleBack = () => {
+    if (dirty) {
+      if (confirm("Yra neišsaugotų pakeitimų.\n\nAr tikrai norite išeiti be išsaugojimo?")) {
+        onCancel();
+      }
+    } else {
+      onCancel();
+    }
+  };
+  
+  // Swipe-back gestas (iš kairio krašto į dešinę)
+  useSwipeBack(handleBack);
+  
   return (
     <div>
+      {/* Top bar su atgal mygtuku */}
+      <div style={{ 
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "space-between",
+        padding: "8px 0 16px 0",
+        position: "sticky",
+        top: 0,
+        background: C.bg,
+        zIndex: 10,
+        marginBottom: 4,
+      }}>
+        <button onClick={handleBack}
+          style={{ 
+            background: "transparent",
+            border: "none",
+            color: C.text,
+            fontSize: 15,
+            fontWeight: 600,
+            cursor: "pointer",
+            padding: "8px 12px 8px 0",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}>
+          <span style={{ fontSize: 20, lineHeight: 1 }}>‹</span>
+          <span>Atgal</span>
+          {dirty && <span style={{ width: 6, height: 6, borderRadius: 3, background: C.accent, marginLeft: 4 }} title="Neišsaugoti pakeitimai" />}
+        </button>
+        {!s._isShared && (
+          <button onClick={handleSave}
+            style={{ 
+              background: C.accent,
+              color: C.bg,
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 16px",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "'Bebas Neue', sans-serif",
+              letterSpacing: 1.5,
+            }}>
+            Išsaugoti
+          </button>
+        )}
+      </div>
+      
       <div style={styles.h2}>{session ? "Sesijos duomenys" : "Nauja sesija"}</div>
       
       {/* CSV Import section */}
@@ -2599,7 +2852,80 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         )}
       </div>
       
-      <div style={styles.h3}>Bazė</div>
+      {/* Section controls — overall progress + skip + expand/collapse */}
+      <div style={{ marginBottom: 12, padding: 12, background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>
+        {/* Overall progress bar */}
+        {(() => {
+          const totalFilled = Object.values(progress).reduce((a, b) => a + b.filled, 0);
+          const totalFields = Object.values(progress).reduce((a, b) => a + b.total, 0);
+          const overallPct = totalFields > 0 ? Math.round((totalFilled / totalFields) * 100) : 0;
+          return (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, alignItems: "center" }}>
+                <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>
+                  Sesijos užpildymas
+                </div>
+                <div style={{ fontSize: 13, color: overallPct === 100 ? C.good : C.accent, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>
+                  {totalFilled}/{totalFields} <span style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>({overallPct}%)</span>
+                </div>
+              </div>
+              <div style={{ height: 4, background: C.bg, borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ 
+                  height: "100%",
+                  width: `${overallPct}%`,
+                  background: overallPct === 100 ? C.good : (overallPct >= 50 ? C.accent : "#854d0e"),
+                  transition: "width 0.3s",
+                  borderRadius: 2,
+                }} />
+              </div>
+            </div>
+          );
+        })()}
+        
+        {/* Skip-to-section selector + expand/collapse */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <select 
+            value=""
+            onChange={(e) => { if (e.target.value) scrollToSection(e.target.value); }}
+            style={{ 
+              flex: 1, 
+              minWidth: 0,
+              padding: "8px 10px", 
+              background: C.bg, 
+              color: C.text, 
+              border: `1px solid ${C.border}`, 
+              borderRadius: 6, 
+              fontSize: 12, 
+              fontFamily: "'Manrope', sans-serif",
+              cursor: "pointer",
+            }}
+          >
+            <option value="">→ Peršokti į skiltį...</option>
+            <option value="sec-base">📋 Bazė ({progress.base.filled}/{progress.base.total})</option>
+            <option value="sec-conditions">🌡️ Sąlygos ({progress.conditions.filled}/{progress.conditions.total})</option>
+            <option value="sec-tires">🛞 Padangos ({progress.tires.filled}/{progress.tires.total})</option>
+            <option value="sec-chassis">⚙️ Važiuoklė ({progress.chassis.filled}/{progress.chassis.total})</option>
+            <option value="sec-engine">🏎️ Variklis ({progress.engine.filled}/{progress.engine.total})</option>
+            <option value="sec-telemetry">📊 Telemetrija ({progress.telemetry.filled}/{progress.telemetry.total})</option>
+            <option value="sec-notes">📝 Pastabos</option>
+            <option value="sec-photos">📸 Nuotraukos</option>
+          </select>
+          <button onClick={() => setSectionsForceState("open")}
+            style={{ padding: "8px 10px", background: C.bg, color: C.muted, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+            ▼ Visi
+          </button>
+          <button onClick={() => setSectionsForceState("closed")}
+            style={{ padding: "8px 10px", background: C.bg, color: C.muted, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+            ▲ Sutraukti
+          </button>
+        </div>
+      </div>
+      
+      <CollapsibleSection sectionId="sec-base" title="Bazė" icon="📋" defaultOpen={true} 
+        progress={progress.base}
+        hasError={!!validation.base}
+        badge={validation.base ? "⚠ trūksta" : null}
+        forceState={sectionsForceState}>
       {s._isShared && (
         <div style={{ padding: 12, background: "#1c1810", border: `1px solid #854d0e`, color: "#fde68a", fontSize: 12, borderRadius: 8, marginBottom: 12, lineHeight: 1.5 }}>
           👥 <strong>Kolegos sesija</strong> {s._sharedFrom && <>iš <strong>{s._sharedFrom}</strong></>}
@@ -2639,8 +2965,9 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
       <div style={{ fontSize: 10, color: C.dim, marginTop: 4, marginBottom: 4 }}>
         💡 Treniruočių duomenys privatūs. Tik po etapo / varžybų galima dalintis su kolegomis.
       </div>
+      </CollapsibleSection>
       
-      <div style={styles.h3}>Sąlygos</div>
+      <CollapsibleSection sectionId="sec-conditions" progress={progress.conditions} title="Sąlygos" icon="🌡️" defaultOpen={true} forceState={sectionsForceState}>
       <div style={styles.row}>
         <div style={{ flex: 1 }}>
           <label style={styles.label}>Oro t° (°C)</label>
@@ -2666,7 +2993,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         <option>Sausa</option><option>Lengvas lietus</option><option>Lietus</option><option>Šlapia po lietaus</option><option>Apsiniaukę</option>
       </select>
       
-      <div style={styles.h3}>Padangos</div>
+      </CollapsibleSection>
+      <CollapsibleSection sectionId="sec-tires" progress={progress.tires} title="Padangos" icon="🛞" defaultOpen={false} forceState={sectionsForceState}>
       <div style={styles.row}>
         <div style={{ flex: 2 }}>
           <label style={styles.label}>Padangos / komp.</label>
@@ -2696,7 +3024,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         </div>
       </div>
       
-      <div style={styles.h3}>Važiuoklė</div>
+      </CollapsibleSection>
+      <CollapsibleSection sectionId="sec-chassis" progress={progress.chassis} title="Važiuoklė" icon="⚙️" defaultOpen={false} forceState={sectionsForceState}>
       <div style={styles.row}>
         <div style={{ flex: 1 }}>
           <label style={styles.label}>Toe (mm)</label>
@@ -2726,7 +3055,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         </div>
       </div>
       
-      <div style={styles.h3}>Variklis</div>
+      </CollapsibleSection>
+      <CollapsibleSection sectionId="sec-engine" progress={progress.engine} title="Variklis" icon="🏎️" defaultOpen={true} forceState={sectionsForceState}>
       <div style={styles.row}>
         <div style={{ flex: 1 }}>
           <label style={styles.label}>Gear F</label>
@@ -2757,7 +3087,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
       <label style={{ ...styles.label, marginTop: 8 }}>Vairuotojas+kart svoris (kg)</label>
       <input style={styles.input} type="number" value={s.weight} onChange={(e) => upd("weight", e.target.value)} />
       
-      <div style={styles.h3}>Telemetrija (iš MyChron)</div>
+      </CollapsibleSection>
+      <CollapsibleSection sectionId="sec-telemetry" progress={progress.telemetry} hasError={!!validation.telemetry} badge={validation.telemetry ? "⚠ trūksta" : null} title="Telemetrija (iš MyChron)" icon="📊" defaultOpen={true} forceState={sectionsForceState}>
       <div style={styles.row}>
         <div style={{ flex: 1 }}>
           <label style={styles.label}>Best lap (s)</label>
@@ -2814,7 +3145,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
       </div>
       
       {/* ============ V3 PAPILDOMI DUOMENYS ============ */}
-      <div style={styles.h3}>Papildomi duomenys ▸ Variklis</div>
+      </CollapsibleSection>
+      <CollapsibleSection title="Papildomi duomenys ▸ Variklis" icon="🔧" defaultOpen={false} forceState={sectionsForceState}>
       <div style={styles.row}>
         <div style={{ flex: 1 }}>
           <label style={styles.label}>Variklio valandos</label>
@@ -2829,7 +3161,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         💡 Rotax Senior limit ~25h iki rebuild. Vega Whites sweet spot 4-6 ciklai.
       </div>
       
-      <div style={styles.h3}>Papildomi duomenys ▸ Šasi</div>
+      </CollapsibleSection>
+      <CollapsibleSection title="Papildomi duomenys ▸ Šasi" icon="🔧" defaultOpen={false} forceState={sectionsForceState}>
       <div style={styles.row}>
         <div style={{ flex: 1 }}>
           <label style={styles.label}>Priekio stabilizatorius</label>
@@ -2841,7 +3174,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         </div>
       </div>
       
-      <div style={styles.h3}>Papildomi duomenys ▸ Sėdynė</div>
+      </CollapsibleSection>
+      <CollapsibleSection title="Papildomi duomenys ▸ Sėdynė" icon="💺" defaultOpen={false} forceState={sectionsForceState}>
       <div style={styles.row}>
         <div style={{ flex: 1 }}>
           <label style={styles.label}>Pozicija P/G (mm)</label>
@@ -2859,7 +3193,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
       <label style={{ ...styles.label, marginTop: 8 }}>Atramų tipas</label>
       <input style={styles.input} value={s.seatSupportType} onChange={(e) => upd("seatSupportType", e.target.value)} placeholder="kietos / minkstos / mix" />
       
-      <div style={styles.h3}>Papildomi duomenys ▸ Svorio balansas (kg)</div>
+      </CollapsibleSection>
+      <CollapsibleSection title="Papildomi duomenys ▸ Svorio balansas (kg)" icon="⚖️" defaultOpen={false} forceState={sectionsForceState}>
       <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>
         Su corner scales matuotas svoris kiekvienam ratui (kart + vairuotojas). Idealu: priekis 42-44%, kairė ≈ dešinė.
       </div>
@@ -2906,7 +3241,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         );
       })()}
       
-      <div style={styles.h3}>Papildomi duomenys ▸ Padangų paviršiaus t° (IR pirometras)</div>
+      </CollapsibleSection>
+      <CollapsibleSection title="Papildomi duomenys ▸ Padangų paviršiaus t° (IR pirometras)" icon="🌡️" defaultOpen={false} forceState={sectionsForceState}>
       <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>
         Matuoti per 30 sek po sustojimo. 3 taškai kiekvienoje padangoje: vidinis (in), vidurys (mid), išorinis (out). Skirtumas {'>'}10°C tarp taškų rodo balansą.
       </div>
@@ -2939,7 +3275,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         <input style={styles.input} type="number" placeholder="out" value={s.tireTemp_RR_out} onChange={(e) => upd("tireTemp_RR_out", e.target.value)} />
       </div>
       
-      <div style={styles.h3}>Papildomi duomenys ▸ Stabdžių sistema</div>
+      </CollapsibleSection>
+      <CollapsibleSection title="Papildomi duomenys ▸ Stabdžių sistema" icon="🛑" defaultOpen={false} forceState={sectionsForceState}>
       <div style={{ fontSize: 11, color: C.muted, marginBottom: 8, lineHeight: 1.5 }}>
         💡 <strong>Filosofija:</strong> prieš pirkti naujas paduškas — patikrinti dabartinę būklę. Glazed paduškas dažnai galima atgaivinti su švitriniu popieriumi (grit 80-120) už 5€ vietoj 100€ keitimo.
       </div>
@@ -3246,7 +3583,8 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         </div>
       </div>
       
-      <div style={styles.h3}>Papildomi duomenys ▸ Video + komentarai pagal ratą</div>
+      </CollapsibleSection>
+      <CollapsibleSection title="Papildomi duomenys ▸ Video + komentarai pagal ratą" icon="🎥" defaultOpen={false} forceState={sectionsForceState}>
       <LapCommentsSection
         lapComments={s.lapComments || []}
         lapCount={s.lapCount}
@@ -3256,16 +3594,20 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         onVideoChange={(vk) => setS(prev => ({ ...prev, videoKey: vk }))}
       />
       
-      <div style={styles.h3}>Nuotraukos</div>
+      </CollapsibleSection>
+      <CollapsibleSection sectionId="sec-photos" title="Nuotraukos" icon="📸" defaultOpen={false} forceState={sectionsForceState}>
       <PhotoSection
         sessionId={stableId}
         photos={s.photos || {}}
         onPhotosChange={(newPhotos) => setS(prev => ({ ...prev, photos: newPhotos }))}
       />
       
-      <label style={{ ...styles.label, marginTop: 12 }}>Vairuotojo / mechaniko pastabos</label>
-      <textarea style={{ ...styles.input, minHeight: 80, fontFamily: "inherit" }} value={s.notes} onChange={(e) => upd("notes", e.target.value)} 
-        placeholder="kur understeer, kur slysta, kaip jaučiasi išvažiavimai, plug spalva..." />
+      <div id="sec-notes" style={{ scrollMarginTop: 80 }}>
+        <label style={{ ...styles.label, marginTop: 12 }}>Vairuotojo / mechaniko pastabos</label>
+        <textarea style={{ ...styles.input, minHeight: 80, fontFamily: "inherit" }} value={s.notes} onChange={(e) => upd("notes", e.target.value)} 
+          placeholder="kur understeer, kur slysta, kaip jaučiasi išvažiavimai, plug spalva..." />
+      </div>
+      </CollapsibleSection>
       
       {/* Live recommendations as they fill */}
       {liveRecs.length > 0 && (
@@ -3277,8 +3619,43 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         </div>
       )}
       
-      <button style={styles.btn} onClick={handleSave}>Išsaugoti sesiją</button>
-      <button style={styles.btnGhost} onClick={onCancel}>Atšaukti</button>
+      {/* Apatinė juosta — sticky save mygtukas */}
+      {!s._isShared && (
+        <div style={{ 
+          position: "sticky",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: `linear-gradient(180deg, transparent 0%, ${C.bg} 30%, ${C.bg} 100%)`,
+          padding: "20px 0 16px 0",
+          marginTop: 24,
+          zIndex: 50,
+          marginLeft: -20,
+          marginRight: -20,
+          paddingLeft: 20,
+          paddingRight: 20,
+        }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ ...styles.btnGhost, flex: 1 }} onClick={handleBack}>Atgal</button>
+            <button style={{ ...styles.btn, flex: 2, position: "relative" }} onClick={handleSave}>
+              {dirty && <span style={{ 
+                position: "absolute", 
+                top: 8, 
+                right: 8,
+                width: 8, 
+                height: 8, 
+                borderRadius: 4, 
+                background: "#dc2626", 
+                animation: "pulse 1.5s infinite",
+              }} />}
+              <span>Išsaugoti sesiją</span>
+            </button>
+          </div>
+        </div>
+      )}
+      {s._isShared && (
+        <button style={{ ...styles.btnGhost, marginTop: 16 }} onClick={handleBack}>Atgal į sąrašą</button>
+      )}
     </div>
   );
 }
@@ -3370,6 +3747,13 @@ function SessionList({ sessions, onAdd, onEdit, onDelete, onImportShared, onShar
   const myOwnSessions = sessions.filter(s => !s._isShared);
   const sharedSessions = sessions.filter(s => s._isShared);
   
+  // Per-day collapse state
+  const [expandedDays, setExpandedDays] = useState(() => {
+    // Pagal nutylėjimą - tik šiandienos + paskutinė diena atidaryta
+    const today = new Date().toISOString().slice(0, 10);
+    return new Set([today]);
+  });
+  
   // Group by date
   const grouped = useMemo(() => {
     const m = {};
@@ -3383,6 +3767,56 @@ function SessionList({ sessions, onAdd, onEdit, onDelete, onImportShared, onShar
   }, [myOwnSessions]);
   
   const dates = Object.keys(grouped).sort().reverse();
+  
+  // Automatiškai atidaryti naujausią dieną (jei dar nebuvo apsiverstas state)
+  useEffect(() => {
+    if (dates.length > 0 && expandedDays.size === 1) {
+      setExpandedDays(prev => new Set([...prev, dates[0]]));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dates.length]);
+  
+  const toggleDay = (date) => {
+    setExpandedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
+  
+  // Day summary computation
+  const getDaySummary = (daySessions) => {
+    const validLaps = daySessions.filter(s => s.bestLap);
+    const bestSession = validLaps.reduce((b, s) => (!b || s.bestLap < b.bestLap) ? s : b, null);
+    
+    // Padangos — paima dažniausią
+    const tireBrands = daySessions.map(s => s.tireBrand).filter(Boolean);
+    const tireBrand = tireBrands.length > 0 ? tireBrands[tireBrands.length - 1] : null;
+    
+    // Gear — paima dažniausią
+    const gears = daySessions.map(s => s.gear_F && s.gear_R ? `${s.gear_F}/${s.gear_R}` : null).filter(Boolean);
+    const gearCounts = {};
+    gears.forEach(g => { gearCounts[g] = (gearCounts[g] || 0) + 1; });
+    const topGear = Object.entries(gearCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    
+    // Jets — paima visus unikalius
+    const jets = [...new Set(daySessions.map(s => s.mainJet).filter(Boolean))];
+    
+    // Adata — paima unikalius
+    const needles = [...new Set(daySessions.map(s => s.needle).filter(v => v !== "" && v !== null && v !== undefined))];
+    
+    return {
+      sessionCount: daySessions.length,
+      bestLap: bestSession?.bestLap,
+      bestSessionTime: bestSession?.time,
+      tireBrand,
+      gear: topGear,
+      jets, // gali būti keletas — buvo testuojami skirtingi
+      needles,
+      hasRaceEvent: daySessions.some(s => s.sessionType === "race_event"),
+    };
+  };
   
   const handleImportSharedFile = async (e) => {
     const file = e.target.files?.[0];
@@ -3406,6 +3840,21 @@ function SessionList({ sessions, onAdd, onEdit, onDelete, onImportShared, onShar
     }
   };
   
+  // Format date for display
+  const fmtDate = (dStr) => {
+    if (!dStr || dStr === "?") return "Be datos";
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (dStr === today) return `Šiandien · ${dStr}`;
+    if (dStr === yesterday) return `Vakar · ${dStr}`;
+    // Try to parse weekday
+    try {
+      const d = new Date(dStr);
+      const days = ["Sek", "Pirm", "Antr", "Treč", "Ketv", "Penkt", "Šešt"];
+      return `${days[d.getDay()]} · ${dStr}`;
+    } catch { return dStr; }
+  };
+  
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -3424,55 +3873,134 @@ function SessionList({ sessions, onAdd, onEdit, onDelete, onImportShared, onShar
         </div>
       )}
       
-      {dates.map(d => (
-        <div key={d}>
-          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 2, color: C.dim, marginTop: 16, marginBottom: 8 }}>{d}</div>
-          {grouped[d].map((s, idx) => {
-            const isRaceEvent = s.sessionType === "race_event";
-            return (
-              <div key={s.id} style={{ ...styles.card, ...styles.cardAccent, position: "relative" }} onClick={() => onEdit(s)}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div>
-                    <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18 }}>
-                      S{idx + 1} · {s.time || "—"}
-                      {s.sessionType === "training" && <span style={{ fontSize: 10, marginLeft: 8, color: C.muted, letterSpacing: 0.5 }}>🔒 PRIVATU</span>}
-                      {s.sessionType === "qualifying" && <span style={{ fontSize: 10, marginLeft: 8, color: C.muted, letterSpacing: 0.5 }}>🔒 KVALIF.</span>}
-                      {s.sessionType === "race_event" && <span style={{ fontSize: 10, marginLeft: 8, color: C.accent, letterSpacing: 0.5 }}>📢 ETAPAS</span>}
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{s.track} · {s.airTemp || "?"}°C · {s.weather || "—"}</div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, color: C.accent, fontWeight: 700 }}>{s.bestLap ? s.bestLap.toFixed(3) : "—"}</div>
-                    <div style={{ fontSize: 9, color: C.dim, textTransform: "uppercase", letterSpacing: 1 }}>Best lap</div>
-                  </div>
+      {dates.map(d => {
+        const isExpanded = expandedDays.has(d);
+        const summary = getDaySummary(grouped[d]);
+        
+        return (
+          <div key={d} style={{ marginBottom: 10 }}>
+            {/* Day header — sukoncentruota dienos kortelė */}
+            <div 
+              onClick={() => toggleDay(d)}
+              style={{ 
+                background: C.card,
+                border: `1px solid ${isExpanded ? C.accent : C.border}`,
+                borderRadius: 12,
+                padding: "12px 14px",
+                cursor: "pointer",
+                position: "relative",
+              }}>
+              {/* Top line: date + best lap */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 11, color: C.muted, transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block", width: 10 }}>▸</span>
+                  <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1.5, color: C.text }}>
+                    {fmtDate(d)}
+                  </span>
+                  {summary.hasRaceEvent && (
+                    <span style={{ padding: "1px 6px", background: C.accent + "22", color: C.accent, borderRadius: 99, fontSize: 9, fontWeight: 700, letterSpacing: 0.5 }}>📢 ETAPAS</span>
+                  )}
                 </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, alignItems: "center" }}>
-                  <span style={{ padding: "2px 8px", background: "#3f2d05", color: C.accent, borderRadius: 99, fontSize: 10, fontWeight: 700 }}>jet {s.mainJet || "?"}</span>
-                  <span style={{ padding: "2px 8px", background: "#1e293b", color: "#94a3b8", borderRadius: 99, fontSize: 10, fontWeight: 700 }}>{s.gear_F}/{s.gear_R}</span>
-                  {s.cold_F && s.hot_F && (
-                    <span style={{ padding: "2px 8px", background: "#1f1f23", color: C.muted, borderRadius: 99, fontSize: 10 }}>
-                      {(typeof s.cold_F === "number" ? s.cold_F : parseFloat(s.cold_F)).toFixed(2)}→{(typeof s.hot_F === "number" ? s.hot_F : parseFloat(s.hot_F)).toFixed(2)} F
-                    </span>
-                  )}
-                  {s.photos && Object.keys(s.photos).length > 0 && (
-                    <span style={{ padding: "2px 8px", background: "#0d1c14", color: C.good, borderRadius: 99, fontSize: 10, fontWeight: 700 }}>
-                      📸 {Object.values(s.photos).reduce((sum, arr) => sum + arr.length, 0)}
-                    </span>
-                  )}
-                  <div style={{ flex: 1 }} />
-                  {isRaceEvent && (
-                    <button onClick={(e) => handleShareClick(s, e)}
-                      style={{ padding: "4px 10px", background: "transparent", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 99, fontSize: 10, fontWeight: 700, cursor: "pointer" }}
-                      title="Dalintis su kolegomis">
-                      📤 Dalintis
-                    </button>
-                  )}
+                <div style={{ textAlign: "right", marginLeft: 8 }}>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, color: C.accent, fontWeight: 700, lineHeight: 1 }}>
+                    {summary.bestLap ? summary.bestLap.toFixed(3) : "—"}
+                  </div>
+                  <div style={{ fontSize: 8, color: C.dim, textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>
+                    Geriausias{summary.bestSessionTime ? ` · ${summary.bestSessionTime}` : ""}
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      ))}
+              
+              {/* Bottom line: setup summary chips */}
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ padding: "2px 8px", background: C.bg, color: C.muted, borderRadius: 99, fontSize: 10, fontWeight: 600, border: `1px solid ${C.border}` }}>
+                  {summary.sessionCount} {summary.sessionCount === 1 ? "sesija" : "sesijos"}
+                </span>
+                {summary.tireBrand && (
+                  <span style={{ padding: "2px 8px", background: "#1e293b", color: "#94a3b8", borderRadius: 99, fontSize: 10, fontWeight: 700 }}>
+                    🛞 {summary.tireBrand}
+                  </span>
+                )}
+                {summary.gear && (
+                  <span style={{ padding: "2px 8px", background: "#1e293b", color: "#94a3b8", borderRadius: 99, fontSize: 10, fontWeight: 700 }}>
+                    ⚙ {summary.gear}
+                  </span>
+                )}
+                {summary.jets.length > 0 && (
+                  <span style={{ padding: "2px 8px", background: "#3f2d05", color: C.accent, borderRadius: 99, fontSize: 10, fontWeight: 700 }}>
+                    🌡 jet {summary.jets.length > 1 ? summary.jets.join("/") : summary.jets[0]}
+                  </span>
+                )}
+                {summary.needles.length > 0 && (
+                  <span style={{ padding: "2px 8px", background: "#3f2d05", color: C.accent, borderRadius: 99, fontSize: 10, fontWeight: 700 }}>
+                    📐 pos {summary.needles.length > 1 ? summary.needles.join("/") : summary.needles[0]}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {/* Sessions list — expanded */}
+            {isExpanded && (
+              <div style={{ marginTop: 8, marginLeft: 12 }}>
+                {grouped[d].map((s, idx) => {
+                  const isRaceEvent = s.sessionType === "race_event";
+                  return (
+                    <div key={s.id} 
+                      style={{ 
+                        ...styles.card, 
+                        ...styles.cardAccent, 
+                        position: "relative",
+                        marginBottom: 8,
+                        marginLeft: 8,
+                        borderLeft: `3px solid ${C.accent}`,
+                      }} 
+                      onClick={() => onEdit(s)}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16 }}>
+                            S{idx + 1} · {s.time || "—"}
+                            {s.sessionType === "training" && <span style={{ fontSize: 9, marginLeft: 6, color: C.muted, letterSpacing: 0.5 }}>🔒 PRIV</span>}
+                            {s.sessionType === "qualifying" && <span style={{ fontSize: 9, marginLeft: 6, color: C.muted, letterSpacing: 0.5 }}>🔒 KVALIF</span>}
+                            {s.sessionType === "race_event" && <span style={{ fontSize: 9, marginLeft: 6, color: C.accent, letterSpacing: 0.5 }}>📢 ETAPAS</span>}
+                          </div>
+                          <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{s.track || "—"} · {s.airTemp || "?"}°C · {s.weather || "—"}</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 16, color: C.accent, fontWeight: 700 }}>{s.bestLap ? s.bestLap.toFixed(3) : "—"}</div>
+                          <div style={{ fontSize: 8, color: C.dim, textTransform: "uppercase", letterSpacing: 1 }}>Best lap</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+                        <span style={{ padding: "1px 7px", background: "#3f2d05", color: C.accent, borderRadius: 99, fontSize: 9, fontWeight: 700 }}>jet {s.mainJet || "?"}</span>
+                        <span style={{ padding: "1px 7px", background: "#1e293b", color: "#94a3b8", borderRadius: 99, fontSize: 9, fontWeight: 700 }}>{s.gear_F}/{s.gear_R}</span>
+                        {s.needle && <span style={{ padding: "1px 7px", background: "#3f2d05", color: C.accent, borderRadius: 99, fontSize: 9, fontWeight: 700 }}>pos {s.needle}</span>}
+                        {s.cold_F && s.hot_F && (
+                          <span style={{ padding: "1px 7px", background: "#1f1f23", color: C.muted, borderRadius: 99, fontSize: 9 }}>
+                            {(typeof s.cold_F === "number" ? s.cold_F : parseFloat(s.cold_F)).toFixed(2)}→{(typeof s.hot_F === "number" ? s.hot_F : parseFloat(s.hot_F)).toFixed(2)} F
+                          </span>
+                        )}
+                        {s.photos && Object.keys(s.photos).length > 0 && (
+                          <span style={{ padding: "1px 7px", background: "#0d1c14", color: C.good, borderRadius: 99, fontSize: 9, fontWeight: 700 }}>
+                            📸 {Object.values(s.photos).reduce((sum, arr) => sum + arr.length, 0)}
+                          </span>
+                        )}
+                        <div style={{ flex: 1 }} />
+                        {isRaceEvent && (
+                          <button onClick={(e) => handleShareClick(s, e)}
+                            style={{ padding: "3px 8px", background: "transparent", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 99, fontSize: 9, fontWeight: 700, cursor: "pointer" }}
+                            title="Dalintis su kolegomis">
+                            📤 Dalintis
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
       
       {/* Kolegų sesijos — atskira sekcija */}
       {sharedSessions.length > 0 && (
@@ -3997,55 +4525,631 @@ function HelpView() {
 }
 
 // ============================================================
+// ============================================================
+// PAKVIETIMŲ KODŲ SISTEMA
+// ============================================================
+// Tai soft-security: kodai matomi naršyklėje, bet užtenka,
+// kad atsitiktiniai žmonės negalėtų pradėti naudoti.
+// Jei norėtų apeiti — reikia žinoti JS / DevTools (5% žmonių).
+
+// Galiojantys pakvietimų kodai. Pridėk / pakeisk šitą sąrašą
+// kad išplėstum / apribotum prieigą.
+// Tipas: { code: "KODAS", note: "Kam skirta", expiresAt?: "YYYY-MM-DD" }
+const VALID_INVITE_CODES = [
+  { code: "DK-DOVYDAS-2026", note: "Dovydas (savininkas)" },
+  { code: "DK-TEAM-001", note: "Komandos draugas #1" },
+  { code: "DK-TEAM-002", note: "Komandos draugas #2" },
+  { code: "DK-TEAM-003", note: "Komandos draugas #3" },
+  { code: "DK-TEAM-004", note: "Komandos draugas #4" },
+];
+
+const INVITE_CODE_KEY = "dkkart:invite_code:v1";
+
+function isInviteCodeValid(code) {
+  if (!code) return false;
+  const normalized = code.trim().toUpperCase();
+  const entry = VALID_INVITE_CODES.find(c => c.code.toUpperCase() === normalized);
+  if (!entry) return false;
+  // Check expiration
+  if (entry.expiresAt) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (today > entry.expiresAt) return false;
+  }
+  return true;
+}
+
+function InviteCodeScreen({ onSuccess }) {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState(null);
+  
+  const handleSubmit = async () => {
+    setError(null);
+    if (!code.trim()) {
+      setError("Įvesk pakvietimo kodą");
+      return;
+    }
+    if (!isInviteCodeValid(code)) {
+      setError("Neteisingas arba pasibaigęs kodas");
+      return;
+    }
+    // Įrašom kodą į localStorage, kad sekantį kartą nereikėtų vesti
+    try {
+      await window.storage.set(INVITE_CODE_KEY, code.trim().toUpperCase());
+    } catch (e) { console.error(e); }
+    onSuccess(code.trim().toUpperCase());
+  };
+  
+  return (
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');`}</style>
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", padding: 20, fontFamily: "'Manrope', sans-serif" }}>
+        <div style={{ maxWidth: 480, width: "100%", margin: "auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 30 }}>
+            <div style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 56, color: C.accent, letterSpacing: -2, lineHeight: 1 }}>DK</div>
+            <div style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 700, fontSize: 32, color: C.text, letterSpacing: 1, marginTop: 4 }}>Kart</div>
+          </div>
+          
+          <div style={{ background: C.card, padding: 24, borderRadius: 16, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 8, textAlign: "center" }}>
+              🔐 Pakvietimo kodas
+            </div>
+            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 20, textAlign: "center" }}>
+              DK Kart šiuo metu yra <strong>uždara beta versija</strong>.<br/>
+              Naudojimui reikalingas pakvietimo kodas iš komandos.
+            </div>
+            
+            <label style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, display: "block", marginBottom: 6 }}>
+              Kodas
+            </label>
+            <input 
+              style={{ 
+                width: "100%", 
+                padding: "14px 16px", 
+                background: C.bg, 
+                border: `1px solid ${error ? C.danger : C.border}`, 
+                borderRadius: 8, 
+                color: C.text, 
+                fontSize: 16, 
+                marginBottom: error ? 4 : 16, 
+                outline: "none",
+                fontFamily: "'JetBrains Mono', monospace",
+                letterSpacing: 1,
+                textTransform: "uppercase",
+              }}
+              value={code}
+              onChange={(e) => { setCode(e.target.value); setError(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
+              placeholder="DK-XXXXXX-XXXX"
+              autoFocus
+              autoCapitalize="characters"
+            />
+            
+            {error && (
+              <div style={{ fontSize: 12, color: C.danger, marginBottom: 16, marginTop: 4, fontWeight: 600 }}>
+                ⚠ {error}
+              </div>
+            )}
+            
+            <button
+              onClick={handleSubmit}
+              style={{ width: "100%", padding: "14px 20px", background: C.accent, color: C.bg, border: "none", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer", letterSpacing: 0.5 }}
+            >
+              Patvirtinti
+            </button>
+            
+            <div style={{ fontSize: 11, color: C.dim, marginTop: 16, textAlign: "center", lineHeight: 1.6 }}>
+              Neturi kodo? Susisiek su komandos vadovu, kad gautumei pakvietimą.
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ============================================================
+// DRIVER MANAGEMENT COMPONENTS
+// ============================================================
+
+function DriverCreationScreen({ onCreate }) {
+  const [name, setName] = useState("");
+  const [pin, setPin] = useState("");
+  const [showPin, setShowPin] = useState(false);
+  
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      alert("Įvesk vairuotojo vardą");
+      return;
+    }
+    if (pin && (pin.length < 4 || pin.length > 8 || !/^\d+$/.test(pin))) {
+      alert("PIN turi būti 4-8 skaitmenys");
+      return;
+    }
+    onCreate(name.trim(), pin || null);
+  };
+  
+  return (
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');`}</style>
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", padding: 20, fontFamily: "'Manrope', sans-serif" }}>
+        <div style={{ maxWidth: 480, width: "100%", margin: "auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 30 }}>
+            <div style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 56, color: C.accent, letterSpacing: -2, lineHeight: 1 }}>DK</div>
+            <div style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 700, fontSize: 32, color: C.text, letterSpacing: 1, marginTop: 4 }}>Kart</div>
+          </div>
+          
+          <div style={{ background: C.card, padding: 24, borderRadius: 16, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 8 }}>
+              Sveikas atvykęs! 👋
+            </div>
+            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 20 }}>
+              Pirmiausia — sukurkim vairuotojo profilį. Kiekvieno vairuotojo duomenys yra <strong>visiškai atskirti</strong>.
+              Galėsi pridėti daugiau vairuotojų vėliau.
+            </div>
+            
+            <label style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, display: "block", marginBottom: 6 }}>
+              Vairuotojo vardas *
+            </label>
+            <input 
+              style={{ width: "100%", padding: "12px 14px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 16, marginBottom: 16, outline: "none" }}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Vardas Pavardė"
+              autoFocus
+            />
+            
+            <div style={{ marginBottom: 8 }}>
+              <button
+                onClick={() => setShowPin(!showPin)}
+                style={{ background: "transparent", color: C.muted, border: "none", padding: 0, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}
+              >
+                {showPin ? "− Slėpti PIN" : "+ Pridėti PIN (neprivaloma)"}
+              </button>
+            </div>
+            
+            {showPin && (
+              <>
+                <label style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, display: "block", marginBottom: 6 }}>
+                  PIN (4-8 skaitmenys)
+                </label>
+                <input 
+                  type="password"
+                  inputMode="numeric"
+                  style={{ width: "100%", padding: "12px 14px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 18, marginBottom: 4, outline: "none", letterSpacing: 4, fontFamily: "'JetBrains Mono', monospace" }}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  placeholder="••••"
+                />
+                <div style={{ fontSize: 10, color: C.dim, marginBottom: 16 }}>
+                  PIN apsaugo tavo duomenis, jei kas pasiima telefoną.
+                </div>
+              </>
+            )}
+            
+            <button
+              onClick={handleSubmit}
+              style={{ width: "100%", padding: "14px 20px", background: C.accent, color: C.bg, border: "none", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer", marginTop: 16, letterSpacing: 0.5 }}
+            >
+              Pradėti
+            </button>
+          </div>
+          
+          <div style={{ fontSize: 11, color: C.dim, textAlign: "center", marginTop: 16, lineHeight: 1.6 }}>
+            🔒 Visi duomenys saugomi tik tavo telefone.<br/>
+            Niekas niekur nesiunčiama be tavo paspaudimo.
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PinPromptScreen({ driver, attempt, onAttemptChange, onSubmit, onCancel }) {
+  return (
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');`}</style>
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", padding: 20, fontFamily: "'Manrope', sans-serif" }}>
+        <div style={{ maxWidth: 400, width: "100%", margin: "auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <div style={{ fontSize: 64, marginBottom: 8 }}>🔒</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{driver?.name}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Įvesk PIN, kad atrakintum</div>
+          </div>
+          
+          <div style={{ background: C.card, padding: 24, borderRadius: 16 }}>
+            <input 
+              type="password"
+              inputMode="numeric"
+              style={{ width: "100%", padding: "16px 14px", background: C.bg, border: `2px solid ${C.border}`, borderRadius: 8, color: C.accent, fontSize: 28, marginBottom: 16, outline: "none", letterSpacing: 12, textAlign: "center", fontFamily: "'JetBrains Mono', monospace" }}
+              value={attempt}
+              onChange={(e) => onAttemptChange(e.target.value.replace(/\D/g, "").slice(0, 8))}
+              onKeyDown={(e) => { if (e.key === "Enter") onSubmit(); }}
+              placeholder="••••"
+              autoFocus
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={onCancel}
+                style={{ flex: 1, padding: "12px 16px", background: "transparent", color: C.muted, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+              >
+                Atšaukti
+              </button>
+              <button
+                onClick={onSubmit}
+                disabled={attempt.length < 4}
+                style={{ flex: 1, padding: "12px 16px", background: attempt.length >= 4 ? C.accent : C.border, color: attempt.length >= 4 ? C.bg : C.muted, border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: attempt.length >= 4 ? "pointer" : "default" }}
+              >
+                Patvirtinti
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function DriverPickerSheet({ drivers, activeDriverId, onSwitch, onCreate, onDelete, onClose }) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [showNewPin, setShowNewPin] = useState(false);
+  
+  const handleCreate = () => {
+    if (!newName.trim()) {
+      alert("Įvesk vardą");
+      return;
+    }
+    if (newPin && (newPin.length < 4 || newPin.length > 8)) {
+      alert("PIN turi būti 4-8 skaitmenys");
+      return;
+    }
+    onCreate(newName.trim(), newPin || null);
+    setNewName("");
+    setNewPin("");
+    setShowCreate(false);
+  };
+  
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+         onClick={onClose}>
+      <div style={{ background: C.bg, width: "100%", maxWidth: 600, borderRadius: "20px 20px 0 0", padding: 20, maxHeight: "80vh", overflowY: "auto" }}
+           onClick={(e) => e.stopPropagation()}>
+        <div style={{ width: 40, height: 4, background: C.border, borderRadius: 2, margin: "0 auto 16px" }} />
+        
+        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 16 }}>
+          Pasirink vairuotoją
+        </div>
+        
+        {!showCreate && (
+          <>
+            {drivers.map(d => (
+              <div key={d.id} style={{ 
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: 14, background: d.id === activeDriverId ? "#3f2d05" : C.card, 
+                border: `1px solid ${d.id === activeDriverId ? C.accent : C.border}`,
+                borderRadius: 12, marginBottom: 8, cursor: "pointer"
+              }}
+              onClick={() => onSwitch(d.id)}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 20, background: d.id === activeDriverId ? C.accent : C.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: d.id === activeDriverId ? C.bg : C.text }}>
+                    {d.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>
+                      {d.name}
+                      {d.pin && <span style={{ fontSize: 12, marginLeft: 6 }}>🔒</span>}
+                    </div>
+                    {d.id === activeDriverId && (
+                      <div style={{ fontSize: 11, color: C.accent, fontWeight: 600, marginTop: 2 }}>✓ Aktyvus</div>
+                    )}
+                  </div>
+                </div>
+                {drivers.length > 1 && d.id !== activeDriverId && (
+                  <button onClick={(e) => { e.stopPropagation(); onDelete(d.id); }}
+                    style={{ background: "transparent", border: "none", color: C.danger, fontSize: 16, cursor: "pointer", padding: 8 }}>
+                    🗑
+                  </button>
+                )}
+              </div>
+            ))}
+            
+            <button
+              onClick={() => setShowCreate(true)}
+              style={{ width: "100%", padding: 14, background: "transparent", border: `2px dashed ${C.border}`, color: C.muted, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", marginTop: 8 }}
+            >
+              + Pridėti naują vairuotoją
+            </button>
+          </>
+        )}
+        
+        {showCreate && (
+          <div style={{ background: C.card, padding: 16, borderRadius: 12, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>
+              Naujas vairuotojas
+            </div>
+            
+            <input 
+              style={{ width: "100%", padding: "12px 14px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 15, marginBottom: 12, outline: "none" }}
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Vardas"
+              autoFocus
+            />
+            
+            <button
+              onClick={() => setShowNewPin(!showNewPin)}
+              style={{ background: "transparent", color: C.muted, border: "none", padding: 0, fontSize: 11, cursor: "pointer", textDecoration: "underline", marginBottom: 8 }}
+            >
+              {showNewPin ? "− Slėpti PIN" : "+ Pridėti PIN (neprivaloma)"}
+            </button>
+            
+            {showNewPin && (
+              <input 
+                type="password"
+                inputMode="numeric"
+                style={{ width: "100%", padding: "12px 14px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 16, marginBottom: 12, outline: "none", letterSpacing: 4, fontFamily: "'JetBrains Mono', monospace" }}
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="PIN"
+              />
+            )}
+            
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => { setShowCreate(false); setNewName(""); setNewPin(""); }}
+                style={{ flex: 1, padding: "10px 14px", background: "transparent", color: C.muted, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, cursor: "pointer" }}
+              >
+                Atšaukti
+              </button>
+              <button
+                onClick={handleCreate}
+                style={{ flex: 1, padding: "10px 14px", background: C.accent, color: C.bg, border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+              >
+                Sukurti
+              </button>
+            </div>
+          </div>
+        )}
+        
+        <button onClick={onClose} style={{ width: "100%", padding: 12, background: "transparent", color: C.muted, border: "none", marginTop: 12, fontSize: 13, cursor: "pointer" }}>
+          Uždaryti
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // PAGRINDINIS KOMPONENTAS
 // ============================================================
 export default function DKKart() {
-  const STORAGE_KEY = "dkkart:sessions:v1";
-  const PROFILE_KEY = "dkkart:profile:v1";
+  // Driver registry — kelias driver'iai vienoje programėlėje
+  const DRIVERS_KEY = "dkkart:drivers:v1";
+  const ACTIVE_DRIVER_KEY = "dkkart:active_driver:v1";
   
+  // Per-driver storage funkcijos
+  const getSessionsKey = (driverId) => `dkkart:sessions:v1:${driverId || "default"}`;
+  const getProfileKey = (driverId) => `dkkart:profile:v1:${driverId || "default"}`;
+  
+  const [drivers, setDrivers] = useState([]); // [{id, name, pin?, createdAt}]
+  const [activeDriverId, setActiveDriverId] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("recommendations");
   const [editing, setEditing] = useState(null);
+  const [showDriverPicker, setShowDriverPicker] = useState(false);
+  const [pinPrompt, setPinPrompt] = useState(null); // {driverId, attempt}
+  const [inviteVerified, setInviteVerified] = useState(false);
   
-  // Load
+  // Initial load
   useEffect(() => {
     (async () => {
       try {
-        const [sessR, profR] = await Promise.all([
-          window.storage.get(STORAGE_KEY).catch(() => null),
-          window.storage.get(PROFILE_KEY).catch(() => null),
-        ]);
-        
-        if (sessR && sessR.value) {
-          setSessions(JSON.parse(sessR.value));
+        // PIRMA — patikrinam invite code
+        const inviteR = await window.storage.get(INVITE_CODE_KEY).catch(() => null);
+        if (inviteR && inviteR.value && isInviteCodeValid(inviteR.value)) {
+          setInviteVerified(true);
         } else {
-          setSessions(BASELINE_SESSIONS);
-          await window.storage.set(STORAGE_KEY, JSON.stringify(BASELINE_SESSIONS));
+          // Nėra valid invite — nebandom load'inti kitų duomenų
+          setLoading(false);
+          return;
         }
         
-        if (profR && profR.value) {
-          setProfile(JSON.parse(profR.value));
+        const driversR = await window.storage.get(DRIVERS_KEY).catch(() => null);
+        const activeR = await window.storage.get(ACTIVE_DRIVER_KEY).catch(() => null);
+        
+        let driverList = [];
+        let activeId = null;
+        
+        if (driversR && driversR.value) {
+          driverList = JSON.parse(driversR.value);
+        }
+        
+        if (activeR && activeR.value) {
+          activeId = activeR.value;
+        }
+        
+        // Migracijos check: jei yra senas storage be driver ID
+        if (driverList.length === 0) {
+          // Patikrina, ar yra duomenų pagal seną raktą
+          const oldSessions = await window.storage.get("dkkart:sessions:v1").catch(() => null);
+          const oldProfile = await window.storage.get("dkkart:profile:v1").catch(() => null);
+          
+          if (oldSessions && oldSessions.value || oldProfile && oldProfile.value) {
+            // Yra senų duomenų — migracija
+            const profileData = oldProfile && oldProfile.value ? JSON.parse(oldProfile.value) : null;
+            const driverName = profileData?.driverName || "Vairuotojas";
+            const migratedDriver = {
+              id: `drv_${Date.now()}`,
+              name: driverName,
+              pin: null,
+              createdAt: new Date().toISOString(),
+            };
+            driverList = [migratedDriver];
+            activeId = migratedDriver.id;
+            
+            // Perkelti duomenis į naują raktą
+            if (oldSessions && oldSessions.value) {
+              await window.storage.set(getSessionsKey(migratedDriver.id), oldSessions.value);
+              await window.storage.delete("dkkart:sessions:v1").catch(() => {});
+            }
+            if (oldProfile && oldProfile.value) {
+              await window.storage.set(getProfileKey(migratedDriver.id), oldProfile.value);
+              await window.storage.delete("dkkart:profile:v1").catch(() => {});
+            }
+            
+            await window.storage.set(DRIVERS_KEY, JSON.stringify(driverList));
+            await window.storage.set(ACTIVE_DRIVER_KEY, migratedDriver.id);
+          }
+        }
+        
+        setDrivers(driverList);
+        
+        // Užkrauk aktyvaus driver'io duomenis
+        if (activeId && driverList.find(d => d.id === activeId)) {
+          setActiveDriverId(activeId);
+          await loadDriverData(activeId);
+        } else if (driverList.length > 0) {
+          // Yra driver'iai, bet nėra aktyvaus — paimk pirmą
+          setActiveDriverId(driverList[0].id);
+          await loadDriverData(driverList[0].id);
         } else {
-          setProfile(null); // triggers wizard
+          // Nėra driver'ių — wizard kurs pirmą
+          setProfile(null);
         }
       } catch (e) {
-        setSessions(BASELINE_SESSIONS);
-        setProfile(null);
+        console.error("Load error:", e);
       }
       setLoading(false);
     })();
   }, []);
   
+  // Užkrauti konkrečiam driver'iui duomenis
+  const loadDriverData = async (driverId) => {
+    try {
+      const [sessR, profR] = await Promise.all([
+        window.storage.get(getSessionsKey(driverId)).catch(() => null),
+        window.storage.get(getProfileKey(driverId)).catch(() => null),
+      ]);
+      
+      if (sessR && sessR.value) {
+        setSessions(JSON.parse(sessR.value));
+      } else {
+        setSessions([]);
+      }
+      
+      if (profR && profR.value) {
+        setProfile(JSON.parse(profR.value));
+      } else {
+        setProfile(null);
+      }
+    } catch (e) {
+      console.error("Load driver data error:", e);
+      setSessions([]);
+      setProfile(null);
+    }
+  };
+  
+  // Sukurti naują driver'į
+  const createDriver = async (name, pin = null) => {
+    const newDriver = {
+      id: `drv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: name.trim(),
+      pin: pin ? pin.trim() : null,
+      createdAt: new Date().toISOString(),
+    };
+    const newDrivers = [...drivers, newDriver];
+    setDrivers(newDrivers);
+    setActiveDriverId(newDriver.id);
+    setSessions([]);
+    setProfile(null); // Triggers wizard for new driver
+    
+    try {
+      await window.storage.set(DRIVERS_KEY, JSON.stringify(newDrivers));
+      await window.storage.set(ACTIVE_DRIVER_KEY, newDriver.id);
+    } catch (e) { console.error(e); }
+    
+    return newDriver;
+  };
+  
+  // Perjungti į kitą driver'į
+  const switchDriver = async (driverId) => {
+    const target = drivers.find(d => d.id === driverId);
+    if (!target) return;
+    
+    // Jei turi PIN — paklausk
+    if (target.pin) {
+      setPinPrompt({ driverId, attempt: "" });
+      return;
+    }
+    
+    setActiveDriverId(driverId);
+    await window.storage.set(ACTIVE_DRIVER_KEY, driverId);
+    await loadDriverData(driverId);
+    setShowDriverPicker(false);
+    setTab("recommendations");
+  };
+  
+  const verifyPin = async () => {
+    const target = drivers.find(d => d.id === pinPrompt.driverId);
+    if (!target) return;
+    
+    if (target.pin && pinPrompt.attempt !== target.pin) {
+      alert("Neteisingas PIN");
+      setPinPrompt({ ...pinPrompt, attempt: "" });
+      return;
+    }
+    
+    setActiveDriverId(pinPrompt.driverId);
+    await window.storage.set(ACTIVE_DRIVER_KEY, pinPrompt.driverId);
+    await loadDriverData(pinPrompt.driverId);
+    setShowDriverPicker(false);
+    setPinPrompt(null);
+    setTab("recommendations");
+  };
+  
+  // Ištrinti driver'į (ir visus jo duomenis)
+  const deleteDriver = async (driverId) => {
+    if (drivers.length === 1) {
+      alert("Negali ištrinti paskutinio vairuotojo. Pirmiausia sukurk kitą.");
+      return;
+    }
+    
+    const target = drivers.find(d => d.id === driverId);
+    if (!confirm(`Ar tikrai nori ištrinti "${target?.name}"?\n\nVisos jo sesijos ir profilis bus PRARASTI NEGRĮŽTAMAI.`)) {
+      return;
+    }
+    
+    // Pakartotinis patvirtinimas
+    if (!confirm(`Patvirtink dar kartą: ištrinti "${target?.name}" ir visus duomenis?`)) {
+      return;
+    }
+    
+    const newDrivers = drivers.filter(d => d.id !== driverId);
+    setDrivers(newDrivers);
+    
+    try {
+      await window.storage.set(DRIVERS_KEY, JSON.stringify(newDrivers));
+      await window.storage.delete(getSessionsKey(driverId));
+      await window.storage.delete(getProfileKey(driverId));
+    } catch (e) { console.error(e); }
+    
+    // Jei trynė aktyvų — perjunk į pirmą likusį
+    if (activeDriverId === driverId && newDrivers.length > 0) {
+      await switchDriver(newDrivers[0].id);
+    }
+  };
+  
   const saveProfile = async (p) => {
     setProfile(p);
-    try { await window.storage.set(PROFILE_KEY, JSON.stringify(p)); } catch (e) { console.error(e); }
+    try { await window.storage.set(getProfileKey(activeDriverId), JSON.stringify(p)); } catch (e) { console.error(e); }
   };
   
   const save = async (next) => {
     setSessions(next);
-    try { await window.storage.set(STORAGE_KEY, JSON.stringify(next)); } catch (e) { console.error(e); }
+    try { await window.storage.set(getSessionsKey(activeDriverId), JSON.stringify(next)); } catch (e) { console.error(e); }
   };
   
   const handleSaveSession = (s) => {
@@ -4057,7 +5161,6 @@ export default function DKKart() {
   const handleDelete = (id) => save(sessions.filter(s => s.id !== id));
   
   const handleImportShared = (importedSession) => {
-    // Patikrina ar jau toks ID egzistuoja
     if (sessions.find(s => s.id === importedSession.id)) {
       alert("Ši kolegos sesija jau importuota.");
       return;
@@ -4067,9 +5170,11 @@ export default function DKKart() {
   };
   
   const handleResetProfile = async () => {
-    try { await window.storage.delete(PROFILE_KEY); } catch (e) { /* ignore */ }
+    try { await window.storage.delete(getProfileKey(activeDriverId)); } catch (e) { /* ignore */ }
     setProfile(null);
   };
+  
+  const activeDriver = drivers.find(d => d.id === activeDriverId);
   
   // Loading state
   if (loading) {
@@ -4083,7 +5188,33 @@ export default function DKKart() {
     );
   }
   
-  // First-run setup wizard
+  // PIRMA — invite code patikrinimas
+  if (!inviteVerified) {
+    return <InviteCodeScreen onSuccess={async (code) => {
+      setInviteVerified(true);
+      // Užkrauk likusius duomenis
+      const driversR = await window.storage.get(DRIVERS_KEY).catch(() => null);
+      if (driversR && driversR.value) {
+        const list = JSON.parse(driversR.value);
+        setDrivers(list);
+        const activeR = await window.storage.get(ACTIVE_DRIVER_KEY).catch(() => null);
+        if (activeR && activeR.value && list.find(d => d.id === activeR.value)) {
+          setActiveDriverId(activeR.value);
+          await loadDriverData(activeR.value);
+        }
+      }
+    }} />;
+  }
+  
+  // No drivers yet — show driver creation screen first
+  if (drivers.length === 0) {
+    return <DriverCreationScreen onCreate={async (name, pin) => {
+      const newDriver = await createDriver(name, pin);
+      // Profile wizard will trigger next via profile === null
+    }} />;
+  }
+  
+  // First-run setup wizard (per driver)
   if (!profile || !profile.setupComplete) {
     return (
       <SetupWizard
@@ -4094,9 +5225,20 @@ export default function DKKart() {
     );
   }
   
+  // PIN prompt screen
+  if (pinPrompt) {
+    return <PinPromptScreen 
+      driver={drivers.find(d => d.id === pinPrompt.driverId)}
+      attempt={pinPrompt.attempt}
+      onAttemptChange={(v) => setPinPrompt({ ...pinPrompt, attempt: v })}
+      onSubmit={verifyPin}
+      onCancel={() => setPinPrompt(null)}
+    />;
+  }
+  
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap'); * { box-sizing: border-box; } input, select, textarea { -webkit-appearance: none; }`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap'); * { box-sizing: border-box; } input, select, textarea { -webkit-appearance: none; } @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }`}</style>
       <div style={styles.app}>
         <div style={styles.header}>
           <div style={{ maxWidth: 600, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -4106,7 +5248,16 @@ export default function DKKart() {
                 <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 28, color: C.accent, letterSpacing: -1 }}>DK </span>
                 <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 700, fontSize: 22, color: C.text, letterSpacing: 0.5 }}>Kart</span>
               </div>
-              <div style={styles.brandSub}>{profile.driverName || "Setup & Telemetry"}</div>
+              {/* Driver switcher button — visible if multiple drivers OR can add more */}
+              <button onClick={() => setShowDriverPicker(true)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", background: C.card, border: `1px solid ${C.border}`, borderRadius: 99, color: C.text, fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 2 }}>
+                <span style={{ width: 20, height: 20, borderRadius: 10, background: C.accent, color: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>
+                  {(activeDriver?.name || "?").charAt(0).toUpperCase()}
+                </span>
+                <span>{activeDriver?.name || "—"}</span>
+                {activeDriver?.pin && <span style={{ fontSize: 9 }}>🔒</span>}
+                <span style={{ fontSize: 9, color: C.muted }}>▼</span>
+              </button>
             </div>
             {profile.targetLapTime && (
               <div style={{ textAlign: "right" }}>
@@ -4116,6 +5267,18 @@ export default function DKKart() {
             )}
           </div>
         </div>
+        
+        {/* Driver picker overlay */}
+        {showDriverPicker && (
+          <DriverPickerSheet
+            drivers={drivers}
+            activeDriverId={activeDriverId}
+            onSwitch={switchDriver}
+            onCreate={async (name, pin) => { await createDriver(name, pin); setShowDriverPicker(false); }}
+            onDelete={deleteDriver}
+            onClose={() => setShowDriverPicker(false)}
+          />
+        )}
         
         <div style={styles.content}>
           {editing !== null ? (
