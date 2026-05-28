@@ -4537,7 +4537,7 @@ function HelpView() {
 // Tipas: { code: "KODAS", note: "Kam skirta", expiresAt?: "YYYY-MM-DD" }
 const VALID_INVITE_CODES = [
   { code: "DK-DOVYDAS-2026", note: "Dovydas (savininkas)" },
-  { code: "DK-TEAM-001", note: "Komandos draugas #1" },
+  { code: "DK-JURGIS-2026", note: "JURGIS #1" },
   { code: "DK-TEAM-002", note: "Komandos draugas #2" },
   { code: "DK-TEAM-003", note: "Komandos draugas #3" },
   { code: "DK-TEAM-004", note: "Komandos draugas #4" },
