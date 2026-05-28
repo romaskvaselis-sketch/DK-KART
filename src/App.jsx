@@ -4532,13 +4532,121 @@ function HelpView() {
 // kad atsitiktiniai žmonės negalėtų pradėti naudoti.
 // Jei norėtų apeiti — reikia žinoti JS / DevTools (5% žmonių).
 
+// Specialus savininko kodas — pridės baseline sesijas automatiškai
+const OWNER_INVITE_CODE = "DK-DOVYDAS-2026";
+
+// Dovydo praeito savaitgalio sesijos (preload tik kai naudojamas owner kodas)
+const DOVYDAS_BASELINE_SESSIONS = [
+  // ===== D1: 2026-05-21 (Treniruotė — jet testavimas) =====
+  { id: "dov_2026-05-21_s1", date: "2026-05-21", time: "11:32", track: "Anykščiai", driver: "Dovydas",
+    sessionType: "training",
+    airTemp: 14, pressure: 1020, humidity: "", weather: "Sausa", trackTemp: "",
+    tireBrand: "Mojo D5", tireAge: "naudotos (varžybos)",
+    cold_F: 0.85, cold_R: 0.80, hot_F: 1.15, hot_R: 1.20,
+    chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "netikrintas", camber: "",
+    gear_F: 12, gear_R: 76, mainJet: 127, needle: 3, airScrew: "atsuktas",
+    bestLap: 41.754, avgLap: 42.21, std: 0.41, lapCount: 15,
+    waterMin: 41.1, waterMax: 59.8, waterAvg: 50.8, egtMax: "", egtAvg: "",
+    rpmSustainedStraight: 12777, rpmNearTop: 12777, pedalEventsPerLap: "", topSpeedP99: 101.3, topSpeedMax: 105.8,
+    notes: "Padangos po varžybų. Variklis užsikemšą — jet per liesas.", weight: 162,
+    photos: {} },
+  { id: "dov_2026-05-21_s2", date: "2026-05-21", time: "12:29", track: "Anykščiai", driver: "Dovydas",
+    sessionType: "training",
+    airTemp: 16, pressure: 1020, humidity: "", weather: "Sausa", trackTemp: "",
+    tireBrand: "Mojo D5", tireAge: "naujos",
+    cold_F: 0.70, cold_R: 0.70, hot_F: 1.00, hot_R: 1.00,
+    chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "netikrintas", camber: "",
+    gear_F: 12, gear_R: 76, mainJet: 130, needle: 3, airScrew: "atsuktas",
+    bestLap: 41.160, avgLap: 41.87, std: 0.70, lapCount: 21,
+    waterMin: 29.3, waterMax: 52.9, waterAvg: 49.3, egtMax: "", egtAvg: "",
+    rpmSustainedStraight: 13218, rpmNearTop: 13218, pedalEventsPerLap: "", topSpeedP99: 107.6, topSpeedMax: 112.3,
+    notes: "Padangų sąranga ideali. Variklis pradėjo dirbti.", weight: 162,
+    photos: {} },
+  { id: "dov_2026-05-21_s3", date: "2026-05-21", time: "13:29", track: "Anykščiai", driver: "Dovydas",
+    sessionType: "training",
+    airTemp: 20, pressure: 1020, humidity: "", weather: "Lengvas lietus", trackTemp: "",
+    tireBrand: "Mojo D5", tireAge: "naujos",
+    cold_F: 0.70, cold_R: 0.70, hot_F: 1.00, hot_R: 1.00,
+    chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "netikrintas", camber: "",
+    gear_F: 12, gear_R: 76, mainJet: 133, needle: 3, airScrew: "atsuktas",
+    bestLap: 40.849, avgLap: 41.70, std: 0.78, lapCount: 22,
+    waterMin: 31.0, waterMax: 52.2, waterAvg: 47.3, egtMax: "", egtAvg: "",
+    rpmSustainedStraight: 13250, rpmNearTop: 13250, pedalEventsPerLap: "", topSpeedP99: 104.6, topSpeedMax: 111.0,
+    notes: "DIENOS GERIAUSIAS. Per lengvą lietų — galimai vėsesnis asfaltas.", weight: 155,
+    photos: {} },
+  { id: "dov_2026-05-21_s4", date: "2026-05-21", time: "14:29", track: "Anykščiai", driver: "Dovydas",
+    sessionType: "training",
+    airTemp: 20, pressure: 1020, humidity: "", weather: "Lengvas lietus", trackTemp: "",
+    tireBrand: "Mojo D5", tireAge: "perverstos",
+    cold_F: 0.70, cold_R: 0.60, hot_F: 1.00, hot_R: 0.85,
+    chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "netikrintas", camber: "",
+    gear_F: 12, gear_R: 76, mainJet: 135, needle: 3, airScrew: "atsuktas",
+    bestLap: 40.883, avgLap: 41.78, std: 0.65, lapCount: 22,
+    waterMin: 32.5, waterMax: 49.8, waterAvg: 46.6, egtMax: "", egtAvg: "",
+    rpmSustainedStraight: 13341, rpmNearTop: 13341, pedalEventsPerLap: "", topSpeedP99: 105.4, topSpeedMax: 111.3,
+    notes: "Padangos perverstos. Variklis arti peak power.", weight: 155,
+    photos: {} },
+  { id: "dov_2026-05-21_s5", date: "2026-05-21", time: "15:29", track: "Anykščiai", driver: "Dovydas",
+    sessionType: "training",
+    airTemp: 19, pressure: 1020, humidity: "", weather: "Sausa", trackTemp: "",
+    tireBrand: "Mojo D5", tireAge: "sudilusios",
+    cold_F: 0.70, cold_R: 0.60, hot_F: 1.00, hot_R: 0.85,
+    chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "netikrintas", camber: "",
+    gear_F: 12, gear_R: 76, mainJet: 138, needle: 3, airScrew: "atsuktas",
+    bestLap: 40.937, avgLap: 41.15, std: 0.16, lapCount: 14,
+    waterMin: 30.5, waterMax: 49.8, waterAvg: 45.8, egtMax: "", egtAvg: "",
+    rpmSustainedStraight: 13728, rpmNearTop: 13728, pedalEventsPerLap: "", topSpeedP99: 107.2, topSpeedMax: 115.1,
+    notes: "Konsistencija idealu (std 0.16). Top 115 km/h gal. dėl slipstream. 138 - per riebus.", weight: 155,
+    photos: {} },
+  
+  // ===== D2: 2026-05-22 (BREAKTHROUGH — sub-40 pasiekta) =====
+  { id: "dov_2026-05-22_s6", date: "2026-05-22", time: "15:54", track: "Anykščiai", driver: "Dovydas",
+    sessionType: "training",
+    airTemp: 18, pressure: 1019, humidity: "", weather: "Sausa", trackTemp: "",
+    tireBrand: "Vega Whites", tireAge: "naujos",
+    cold_F: 0.70, cold_R: 0.65, hot_F: 0.98, hot_R: 0.92,
+    chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "+1mm", camber: "-1",
+    gear_F: 12, gear_R: 74, mainJet: 135, needle: 4, airScrew: "atsuktas",
+    bestLap: 39.686, avgLap: 39.95, std: 0.21, lapCount: 12,
+    waterMin: 35.0, waterMax: 51.0, waterAvg: 47.5, egtMax: "", egtAvg: "",
+    rpmSustainedStraight: 13420, rpmNearTop: 13420, pedalEventsPerLap: "", topSpeedP99: 108.5, topSpeedMax: 110.2,
+    notes: "🎯 SUB-40 PASIEKTA. 3 sub-40 ratai. Trumpesnis gear (12/74) padėjo posūkių išvažiavime. Naujos Vega Whites + camber -1 + toe +1mm.", weight: 155,
+    photos: {} },
+  
+  // ===== D3: 2026-05-23 (RACE DAY — etapas) =====
+  { id: "dov_2026-05-23_q1", date: "2026-05-23", time: "10:15", track: "Anykščiai", driver: "Dovydas",
+    sessionType: "qualifying",
+    airTemp: 16, pressure: 1021, humidity: "", weather: "Sausa", trackTemp: "",
+    tireBrand: "Vega Whites", tireAge: "2 sesijos",
+    cold_F: 0.70, cold_R: 0.65, hot_F: 0.95, hot_R: 0.90,
+    chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "+1mm", camber: "-1",
+    gear_F: 12, gear_R: 74, mainJet: 135, needle: 2, airScrew: "atsuktas",
+    bestLap: 39.745, avgLap: 39.98, std: 0.18, lapCount: 8,
+    waterMin: 38.0, waterMax: 52.0, waterAvg: 48.0, egtMax: "", egtAvg: "",
+    rpmSustainedStraight: 13450, rpmNearTop: 13450, pedalEventsPerLap: "", topSpeedP99: 109.0, topSpeedMax: 110.5,
+    notes: "Kvalifikacija. Adata į pos 2 (liesesnis mišinys). Stabilūs sub-40 laikai.", weight: 155,
+    photos: {} },
+  { id: "dov_2026-05-23_r1", date: "2026-05-23", time: "13:30", track: "Anykščiai", driver: "Dovydas",
+    sessionType: "race_event",
+    airTemp: 19, pressure: 1021, humidity: "", weather: "Sausa", trackTemp: "",
+    tireBrand: "Vega Whites", tireAge: "3 sesijos",
+    cold_F: 0.70, cold_R: 0.65, hot_F: 0.97, hot_R: 0.92,
+    chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "+1mm", camber: "-1",
+    gear_F: 12, gear_R: 74, mainJet: 135, needle: 2, airScrew: "atsuktas",
+    bestLap: 39.598, avgLap: 39.85, std: 0.19, lapCount: 23,
+    waterMin: 42.0, waterMax: 55.0, waterAvg: 49.5, egtMax: "", egtAvg: "",
+    rpmSustainedStraight: 13480, rpmNearTop: 13480, pedalEventsPerLap: "", topSpeedP99: 109.2, topSpeedMax: 111.8,
+    notes: "📢 ETAPO LENKTYNĖS. 23 ratų stintas, 18 sub-40 ratų. Geriausias sezono laikas 39.598s!", weight: 155,
+    photos: {} },
+];
+
 // Galiojantys pakvietimų kodai. Pridėk / pakeisk šitą sąrašą
 // kad išplėstum / apribotum prieigą.
 // Tipas: { code: "KODAS", note: "Kam skirta", expiresAt?: "YYYY-MM-DD" }
 const VALID_INVITE_CODES = [
   { code: "DK-DOVYDAS-2026", note: "Dovydas (savininkas)" },
-  { code: "DK-JURGIS-2026", note: "JURGIS #1" },
-  { code: "DK-RYTIS-002", note: "RYTIS #2" },
+  { code: "DK-TEAM-001", note: "Komandos draugas #1" },
+  { code: "DK-TEAM-002", note: "Komandos draugas #2" },
   { code: "DK-TEAM-003", note: "Komandos draugas #3" },
   { code: "DK-TEAM-004", note: "Komandos draugas #4" },
 ];
@@ -5210,6 +5318,20 @@ export default function DKKart() {
   if (drivers.length === 0) {
     return <DriverCreationScreen onCreate={async (name, pin) => {
       const newDriver = await createDriver(name, pin);
+      
+      // Jei naudojamas savininko kodas — automatiškai preload baseline sesijas
+      try {
+        const inviteR = await window.storage.get(INVITE_CODE_KEY).catch(() => null);
+        if (inviteR && inviteR.value === OWNER_INVITE_CODE) {
+          // Preload Dovydas baseline sessions
+          await window.storage.set(
+            getSessionsKey(newDriver.id),
+            JSON.stringify(DOVYDAS_BASELINE_SESSIONS)
+          );
+          setSessions(DOVYDAS_BASELINE_SESSIONS);
+        }
+      } catch (e) { console.error("Baseline preload error:", e); }
+      
       // Profile wizard will trigger next via profile === null
     }} />;
   }
