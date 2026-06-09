@@ -1,16 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 
-if (typeof window !== "undefined" && !window.storage) {
-  window.storage = {
-    async get(key) { try { const v = localStorage.getItem(key); return v !== null ? {key, value:v} : null; } catch { return null; } },
-    async set(key, value) { try { localStorage.setItem(key, value); return {key, value}; } catch (e) { throw e; } },
-    async delete(key) { try { localStorage.removeItem(key); return {key, deleted:true}; } catch { return null; } },
-    async list(prefix) { const keys=[]; for (let i=0;i<localStorage.length;i++) { const k=localStorage.key(i); if (!prefix||k.startsWith(prefix)) keys.push(k); } return {keys, prefix}; },
-  };
-}
-
-
 // ============================================================
 // BASELINE: vakar dienos 5 sesijos (2026-05-21)
 // ============================================================
@@ -115,7 +105,7 @@ const BASELINE_SESSIONS = [
     notes: "Konsistencija auga.", weight: 155 },
   { id: "d2_s6", date: D2, time: "15:54", track: "Anykščiai", driver: "Dovydas",
     airTemp: 20, pressure: 1018, humidity: null, weather: "Sausa", trackTemp: null,
-    tireBrand: "Vega Whites", tireAge: "NEW",
+    tireBrand: "Vega XM3 (White)", tireAge: "NEW",
     cold_F: 0.65, cold_R: 0.60, hot_F: 0.80, hot_R: 0.80,
     chassisAxle: "N", caster: 0, trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: null, torsion: null, toe: "+1mm", camber: -1,
     gear_F: 12, gear_R: 74, mainJet: 135, needle: 2, airScrew: "atsuktas",
@@ -123,12 +113,12 @@ const BASELINE_SESSIONS = [
     waterMin: 49.8, waterMax: 53.1, waterAvg: 51.5, egtMax: null, egtAvg: null,
     rpmSustainedStraight: 12471, rpmNearTop: 13832, pedalEventsPerLap: null,
     topSpeedP99: 110.3, topSpeedMax: 113.3,
-    notes: "🏆 BREAKTHROUGH SUB-40! 3 sub-40 ratai (39.965, 39.858, 39.686). Naujos Vega Whites + gear 74. Vairuotojas pataikė tikslą ir sustojo push'inti.", weight: 155 },
+    notes: "🏆 BREAKTHROUGH SUB-40! 3 sub-40 ratai (39.965, 39.858, 39.686). Naujos Vega XM3 (White) + gear 74. Vairuotojas pataikė tikslą ir sustojo push'inti.", weight: 155 },
   
   // ===== DAY 3: 2026-05-23 — RACE DAY (vietinės varžybos) =====
   { id: "d3_s1", date: D3, time: "09:45", track: "Anykščiai (varžybos)", driver: "Dovydas",
     airTemp: 14, pressure: 1019, humidity: null, weather: "Sausa", trackTemp: null,
-    tireBrand: "Vega Whites", tireAge: "naujos",
+    tireBrand: "Vega XM3 (White)", tireAge: "naujos",
     cold_F: 0.63, cold_R: 0.57, hot_F: 0.80, hot_R: 0.80,
     chassisAxle: "N", caster: 0, trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: null, torsion: null, toe: "+1mm", camber: -1,
     gear_F: 12, gear_R: 74, mainJet: 135, needle: 2, airScrew: "atsuktas",
@@ -139,7 +129,7 @@ const BASELINE_SESSIONS = [
     notes: "Apšildymas/quali. Tikslas pasiektas — sub-40 jau pirmoje sesijoje. Padangos atramine desine 0.57, kaire 0.62.", weight: 155 },
   { id: "d3_s2", date: D3, time: "12:16", track: "Anykščiai (varžybos)", driver: "Dovydas",
     airTemp: 18, pressure: 1019, humidity: null, weather: "Sausa", trackTemp: null,
-    tireBrand: "Vega Whites", tireAge: "1 sesija",
+    tireBrand: "Vega XM3 (White)", tireAge: "1 sesija",
     cold_F: 0.63, cold_R: 0.57, hot_F: 0.80, hot_R: 0.80,
     chassisAxle: "N", caster: 0, trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: null, torsion: null, toe: "+1mm", camber: -1,
     gear_F: 12, gear_R: 74, mainJet: 135, needle: 2, airScrew: "atsuktas",
@@ -150,7 +140,7 @@ const BASELINE_SESSIONS = [
     notes: "Finalas A. 9 sub-40 iš 12 ratų.", weight: 155 },
   { id: "d3_s3", date: D3, time: "14:31", track: "Anykščiai (varžybos)", driver: "Dovydas",
     airTemp: 20, pressure: 1018, humidity: null, weather: "Sausa", trackTemp: null,
-    tireBrand: "Vega Whites", tireAge: "2 sesijos",
+    tireBrand: "Vega XM3 (White)", tireAge: "2 sesijos",
     cold_F: 0.63, cold_R: 0.57, hot_F: 0.80, hot_R: 0.80,
     chassisAxle: "N", caster: 0, trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: null, torsion: null, toe: "+1mm", camber: -1,
     gear_F: 12, gear_R: 74, mainJet: 135, needle: 2, airScrew: "atsuktas",
@@ -161,7 +151,7 @@ const BASELINE_SESSIONS = [
     notes: "🏆 VARŽYBŲ GERIAUSIAS. Dieninė lenktynė.", weight: 155 },
   { id: "d3_s4", date: D3, time: "16:53", track: "Anykščiai (varžybos)", driver: "Dovydas",
     airTemp: 19, pressure: 1018, humidity: null, weather: "Sausa", trackTemp: null,
-    tireBrand: "Vega Whites", tireAge: "3 sesijos",
+    tireBrand: "Vega XM3 (White)", tireAge: "3 sesijos",
     cold_F: 0.63, cold_R: 0.52, hot_F: 0.80, hot_R: 0.77,
     chassisAxle: "N", caster: 0, trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: null, torsion: null, toe: "+1mm", camber: -1,
     gear_F: 12, gear_R: 74, mainJet: 135, needle: 2, airScrew: "atsuktas",
@@ -931,60 +921,566 @@ function airDensity(tempC, pressureHpa, humidity = 0.5) {
 // EQUIPMENT PROFILE (pirmojo paleidimo metu sukurtas)
 // ============================================================
 
+// RĖMŲ GAMINTOJAI — TIK PATIKRINTI (web verified)
+// Šaltiniai: rotax-racing.com, karting magazine, kartingmag.com, wikipedia,
+// kartclass.com, gokartguide.com, kartpulse forums
+// Modelis (pvz. KT2, Dragon Evo 2, Espionage) įvedamas atskirame lauke
+// Rėmai — tik patvirtinti iš Romo užpildytos lentelės (2026-06-08)
+// Su modeliais ir oficialiais URL šaltiniais
 const CHASSIS_OPTIONS = [
-  "CRG", "Tony Kart", "Birel ART", "OTK / Kosmic", "Kart Republic", "Parolin",
-  "Praga", "DR Racing", "Energy Corse", "FA Kart", "Sodi", "Top Kart",
-  "Margay", "Coyote", "Trackmagic", "Arrow", "Ricciardo Kart", "GP / Maranello",
-  "IPK / Formula K", "Intrepid", "CompKart", "Exprit", "Kosmic", "Zanardi",
-  "Tibikart", "DPE Kart", "Italkart", "MS Kart", "Kitas",
+  // ====== CRG (kartcrg.com) ======
+  "CRG KT2",          // 30mm — Dovydo dabartinis rėmas
+  "CRG KT4",          // 30/32mm — tarpinis
+  "CRG KT5",          // 30+32mm priekyje
+  "CRG Road Rebel",   // 32mm — KZ/shifter
+  
+  // ====== TONY KART / OTK (tonykart.com, kosmickart.com) ======
+  "Tony Kart Racer 401", // 30mm — OK, KZ, Rotax, X30
+  "Tony Kart Rookie",    // 28mm — Mini/Cadet
+  "Kosmic Mercury R",    // 30mm racing
+  "FA Kart Victory",     // 30mm
+  
+  // ====== BIREL ART (birelart.com) ======
+  "Birel ART RY30-S15",  // 30mm — OK, KZ, Rotax, X30
+  
+  // ====== KART REPUBLIC ======
+  "Kart Republic KR2",   // 30/32mm — OK, OKJ
+  
+  // ====== PAROLIN ======
+  "Parolin Le Mans",     // 30/32mm
+  
+  // ====== SODI ======
+  "Sodi Sigma RS3",      // 30mm — Rotax, OK
+  
+  // ====== TOP KART USA ======
+  "Top Kart Dreamer KZ", // 30/32mm — KZ, shifter
+  
+  "Kitas",
 ];
 
+// Tik patvirtinti varikliai (verified iš oficialių gamintojų)
+// Atskirti modeliai yra dalinai patvirtinti — jie nerodomi sąraše
+// Variklių šeimos — TIK Europoje naudojamos klasės
+// Šaltinis: CIK-FIA, Rotax Max Challenge, X30 Euro Series, ROK Cup, T4 Euro Cup, BKA Lietuva
 const ENGINE_FAMILIES = {
+  // CIK-FIA tarptautinės klasės (Europos čempionatai)
+  "CIK-FIA": ["60 Mini (CIK-FIA)", "OK-J (CIK-FIA)", "OK (CIK-FIA)", "OKN-J (CIK-FIA A&D Junior)", "OK-N (CIK-FIA A&D Senior)", "KZ2 (CIK-FIA)", "KZ2 Masters (CIK-FIA)", "KZ (CIK-FIA)"],
+  // Rotax MAX Challenge Euro
   Rotax: ["Micro MAX", "Mini MAX", "Junior MAX", "Senior MAX", "DD2", "DD2 Masters"],
-  IAME: ["X30 Mini", "X30 Junior", "X30 Senior", "KA100", "Parilla Leopard", "Waterswift", "Screamer III (KZ)"],
-  Vortex: ["Mini ROK", "Micro ROK", "ROK GP", "ROK VLR", "ROK Shifter", "DVS (OK)", "DJT (OKJ)"],
-  TM: ["KZ R1", "KZ R2", "OK", "OKJ", "Mini"],
-  Modena: ["KK1", "KK2 Junior", "ME"],
-  Comer: ["C50", "C51", "S60", "S80", "K80"],
-  // 4-stroke categories (sealed engines, mass classes)
-  Briggs: ["LO206 Senior", "LO206 Junior", "LO206 Cadet", "Animal"],
-  Tillotson: ["T225 RS Senior", "T225 RS Junior", "T196 R", "T196 R Cadet", "T212 RS"],
-  Honda: ["GX160", "GX200", "GX270", "GX390"],
-  // Specialty
-  PRD: ["Fireball", "RK100"],
-  Wankel: ["KZ Wankel"],
+  // IAME X30 Euro Series
+  IAME: ["X30 Junior", "X30 Senior", "X30 Super 175"],
+  // Vortex ROK Cup Euro
+  Vortex: ["ROK Mini", "ROK GP", "ROK Shifter", "DVS (OK)"],
+  // Modena KZ
+  Modena: ["MKZ KZ"],
+  // Briggs LO206 — Lietuvos / Baltic reglamentas
+  Briggs: ["LO206 Mini (LT/BKA)", "LO206 Junior (LT/BKA)", "LO206 Senior (LT/BKA)", "LO206 Master (LT/BKA)"],
+  // Tillotson T4 Euro Cup
+  Tillotson: ["T4 Series"],
   Kitas: ["Kitas variklis"],
 };
 
-// Engine class metadata — for algorithms
-const ENGINE_METADATA = {
-  // 2-stroke single-speed (direct drive, rear-only brake)
-  "Senior MAX": { stroke: 2, hasGearbox: false, frontBrake: false, peakRPM: 13500, maxRPM: 14250, displacement: 125, hpApprox: 30 },
-  "Junior MAX": { stroke: 2, hasGearbox: false, frontBrake: false, peakRPM: 12500, maxRPM: 13000, displacement: 125, hpApprox: 21 },
-  "Mini MAX": { stroke: 2, hasGearbox: false, frontBrake: false, peakRPM: 11500, maxRPM: 12000, displacement: 125, hpApprox: 16 },
-  "Micro MAX": { stroke: 2, hasGearbox: false, frontBrake: false, peakRPM: 11000, maxRPM: 11500, displacement: 125, hpApprox: 11 },
-  "X30 Senior": { stroke: 2, hasGearbox: false, frontBrake: false, peakRPM: 15000, maxRPM: 16000, displacement: 125, hpApprox: 28 },
-  "X30 Junior": { stroke: 2, hasGearbox: false, frontBrake: false, peakRPM: 13000, maxRPM: 14000, displacement: 125, hpApprox: 20 },
-  "X30 Mini": { stroke: 2, hasGearbox: false, frontBrake: false, peakRPM: 12500, maxRPM: 13500, displacement: 60, hpApprox: 14 },
-  "KA100": { stroke: 2, hasGearbox: false, frontBrake: false, peakRPM: 14500, maxRPM: 16000, displacement: 100, hpApprox: 21 },
-  "ROK GP": { stroke: 2, hasGearbox: false, frontBrake: false, peakRPM: 14000, maxRPM: 16000, displacement: 125, hpApprox: 24 },
-  "Mini ROK": { stroke: 2, hasGearbox: false, frontBrake: false, peakRPM: 13000, maxRPM: 14000, displacement: 60, hpApprox: 12 },
-  // 2-stroke with gearbox (shifter, front + rear brakes)
-  "DD2": { stroke: 2, hasGearbox: true, gears: 2, frontBrake: true, peakRPM: 11000, maxRPM: 12500, displacement: 125, hpApprox: 34 },
-  "DD2 Masters": { stroke: 2, hasGearbox: true, gears: 2, frontBrake: true, peakRPM: 11000, maxRPM: 12500, displacement: 125, hpApprox: 34 },
-  "KZ R1": { stroke: 2, hasGearbox: true, gears: 6, frontBrake: true, peakRPM: 14000, maxRPM: 16000, displacement: 125, hpApprox: 50 },
-  "KZ R2": { stroke: 2, hasGearbox: true, gears: 6, frontBrake: true, peakRPM: 14000, maxRPM: 16000, displacement: 125, hpApprox: 50 },
-  "Screamer III (KZ)": { stroke: 2, hasGearbox: true, gears: 6, frontBrake: true, peakRPM: 14000, maxRPM: 16000, displacement: 125, hpApprox: 50 },
-  "ROK Shifter": { stroke: 2, hasGearbox: true, gears: 6, frontBrake: true, peakRPM: 14000, maxRPM: 16000, displacement: 125, hpApprox: 42 },
-  // 4-stroke (sealed engines for mass classes)
-  "LO206 Senior": { stroke: 4, hasGearbox: false, frontBrake: false, peakRPM: 5800, maxRPM: 6100, displacement: 204, hpApprox: 9 },
-  "LO206 Junior": { stroke: 4, hasGearbox: false, frontBrake: false, peakRPM: 5500, maxRPM: 6100, displacement: 204, hpApprox: 7.5 },
-  "LO206 Cadet": { stroke: 4, hasGearbox: false, frontBrake: false, peakRPM: 5000, maxRPM: 6100, displacement: 204, hpApprox: 6 },
-  "T225 RS Senior": { stroke: 4, hasGearbox: false, frontBrake: false, peakRPM: 6200, maxRPM: 6500, displacement: 225, hpApprox: 15 },
-  "T225 RS Junior": { stroke: 4, hasGearbox: false, frontBrake: false, peakRPM: 6000, maxRPM: 6500, displacement: 225, hpApprox: 12 },
-  "T196 R": { stroke: 4, hasGearbox: false, frontBrake: false, peakRPM: 5800, maxRPM: 6500, displacement: 196, hpApprox: 9 },
-  "T196 R Cadet": { stroke: 4, hasGearbox: false, frontBrake: false, peakRPM: 5500, maxRPM: 6000, displacement: 196, hpApprox: 5.5 },
+// ============================================================
+// VARIKLIO ARCHITEKTŪRA — Bazė + Klasė
+// ============================================================
+// Realybėje karting varikliai NĖRA visi atskiri — daugelis klasių
+// naudoja TĄ PATĮ fizinį variklį, tik su skirtingais ribotuvais.
+// 
+// Pavyzdžiui:
+// - Briggs 206 — TAS PATS variklis Senior/Junior/Cadet/Novice (skiriasi tik carb slide)
+// - Rotax MAX EVO (be PowerValve) — naudojamas Junior/Mini/Micro klasėms
+// - IAME X30 — Senior ir Junior tas pats variklis (skiriasi tik exhaust restrictor)
+//
+// Šaltiniai: rotax-racing.com, briggsracing.com, iamekarting.com, vortex-engines.com
+
+// ============================================================
+// VARIKLIO BAZĖS (fizinis variklis / platforma)
+// ============================================================
+const ENGINE_BASES = {
+  // ===== ROTAX bazės =====
+  "Rotax 125 MAX EVO (su PowerValve)": {
+    family: "Rotax",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    powerValve: true,
+    description: "Senior MAX bazė. Cilindras su elektro-pneumatiniu PowerValve (keičia exhaust port aukštį).",
+    source: "https://www.rotax-racing.com/products/125-max-evo",
+  },
+  "Rotax 125 MAX EVO (be PowerValve)": {
+    family: "Rotax",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    powerValve: false,
+    description: "Junior/Mini/Micro MAX bazė. Tas pats blokas, bet cilindras BE PowerValve. Skirtingi cilindrai gali būti keičiami tarpusavyje.",
+    source: "https://www.rotax-racing.com/products/125-junior-max-evo",
+  },
+  "Rotax 125 MAX DD2 EVO": {
+    family: "Rotax",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: true,
+    gears: 2,
+    frontBrake: true,
+    powerValve: true,
+    description: "Atskira bazė — turi 2 pavarų dėžę ir direct drive (be grandinės). Su priekiniais stabdžiais.",
+    source: "https://www.rotax-racing.com/products/125-max-dd2-evo",
+  },
+  
+  // ===== IAME bazės =====
+  "IAME X30 125": {
+    family: "IAME",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    description: "TaG (Touch-and-Go) variklis su Tillotson HW-27A karburatoriumi. Senior/Junior klasės naudoja tą patį variklį, skiriasi tik exhaust manifold restrictor (Junior: 22.7mm-29mm).",
+    source: "https://iamekarting.com/x30/",
+  },
+  "IAME X30 Super 175": {
+    family: "IAME",
+    displacement: 175,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    description: "Didesnio darbinio tūrio X30 versija.",
+    source: "https://iameengines.com/product/x30-super/",
+  },
+  
+  // ===== VORTEX bazės =====
+  "Vortex ROK GP 125": {
+    family: "Vortex",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    description: "ROK GP TaG variklis.",
+    source: "https://vortex-engines.com/motori-rok-gp_en.php",
+  },
+  "Vortex ROK Mini 60": {
+    family: "Vortex",
+    displacement: 60,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    description: "Mažas 60cc variklis Mini klasei.",
+    source: "https://vortex-engines.com/motori-rok-mini_en.php",
+  },
+  "Vortex ROK Shifter 125": {
+    family: "Vortex",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: true,
+    gears: 6,
+    frontBrake: true,
+    description: "KZ tipo shifter su 6 pavarų dėže ir priekiniais stabdžiais.",
+    source: "https://vortex-engines.com/motori-rok-shifter_en.php",
+  },
+  "Vortex DVS (OK) 125": {
+    family: "Vortex",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    description: "CIK-FIA OK klasės variklis.",
+    source: "https://vortex-engines.com/motori-rok-dvs_en.php",
+  },
+  
+  // ===== MODENA =====
+  "Modena MKZ 125": {
+    family: "Modena",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: true,
+    gears: 6,
+    frontBrake: true,
+    description: "KZ klasės variklis.",
+    source: "https://modenaengines.it/en/kz-mkz/",
+  },
+  
+  // ===== BRIGGS 206 — VIENA BAZĖ VISOMS KLASĖMS =====
+  "Briggs 206": {
+    family: "Briggs",
+    displacement: 206,
+    stroke: 4,
+    cooling: "oru",
+    hasGearbox: false,
+    frontBrake: false,
+    sealed: true,
+    description: "Užplombuotas 4-stroke variklis. VISOS LO206 klasės (Senior/Junior/Cadet/Novice/Masters) naudoja TĄ PATĮ variklį. Klasės skiriasi TIK karburatoriaus slide ribotuvu (#555590 / Yellow / Blue / Green / Red / Purple).",
+    source: "https://www.briggsracing.com/racing-engines/206",
+  },
+  
+  // ===== TILLOTSON =====
+  "Tillotson T225RS": {
+    family: "Tillotson",
+    displacement: 225,
+    stroke: 4,
+    cooling: "oru",
+    hasGearbox: false,
+    frontBrake: false,
+    description: "4-stroke 225cc spec variklis (T4 Series).",
+    source: "https://tillotson.ie/t4-series/",
+  },
+  
+  // ===== CIK-FIA TARPTAUTINĖS EUROPOS BAZĖS =====
+  // Šaltinis: fiakarting.com, fia.com/news/cik-fia-categories
+  "CIK-FIA OK 125": {
+    family: "CIK-FIA",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    powerValve: true,
+    description: "CIK-FIA OK direct-drive 125cc variklis. Su homologuotu PowerValve, 24mm butterfly karbiuratoriumi. Reed-valve intake. Push start (be sankabos/baterijos/starterio).",
+    source: "https://www.fiakarting.com/",
+  },
+  "CIK-FIA OK-J 125": {
+    family: "CIK-FIA",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    powerValve: false,
+    description: "CIK-FIA OK-Junior direct-drive 125cc variklis. BE PowerValve, mažesnis 20mm butterfly karbiuratorius. Direct drive, push start.",
+    source: "https://www.fiakarting.com/",
+  },
+  "CIK-FIA OK-N 125": {
+    family: "CIK-FIA",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    powerValve: false,
+    description: "CIK-FIA OK-N (National) direct-drive 125cc variklis (nuo 2023). Reed-valve intake, BE PowerValve. Push start. Tiekėjai: Vortex, IAME, TM, Modena.",
+    source: "https://www.fiakarting.com/",
+  },
+  "CIK-FIA KZ 125": {
+    family: "CIK-FIA",
+    displacement: 125,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: true,
+    gears: 6,
+    frontBrake: true,
+    description: "CIK-FIA KZ gearbox 125cc variklis. 6-speed mechaninė pavarų dėžė (be servo sistemos KZ2). Priekiniai stabdžiai privalomi. Tiekėjai: TM, IAME, Vortex, Modena.",
+    source: "https://www.fiakarting.com/",
+  },
+  "CIK-FIA 60 Mini": {
+    family: "CIK-FIA",
+    displacement: 60,
+    stroke: 2,
+    cooling: "skystu",
+    hasGearbox: false,
+    frontBrake: false,
+    description: "CIK-FIA 60cc Mini variklis. Vaikams 8-12 m. Champions of the Future serija.",
+    source: "https://www.fiakarting.com/",
+  },
 };
+
+// ============================================================
+// VARIKLIO KLASĖS (kategorijos su klasės-specifinėmis konfigūracijomis)
+// ============================================================
+const ENGINE_CLASSES = {
+  // ===== ROTAX MAX šeima =====
+  "Senior MAX": {
+    base: "Rotax 125 MAX EVO (su PowerValve)",
+    peakRPM: 11500,
+    maxRPM: 14000,
+    hpApprox: 30,
+    restrictor: null,
+    minAge: 14,
+    notes: "Pilna galia, su PowerValve. Recommended 15+ amžiui (14, jei mėgėjas).",
+  },
+  "Junior MAX": {
+    base: "Rotax 125 MAX EVO (be PowerValve)",
+    peakRPM: 8500,
+    maxRPM: 14000,
+    hpApprox: 23,
+    restrictor: "Cilindras be PowerValve",
+    minAge: 12,
+    notes: "Junior bazė — galima konvertuoti į Senior pakeitus cilindrą.",
+  },
+  "Mini MAX": {
+    base: "Rotax 125 MAX EVO (be PowerValve)",
+    peakRPM: 7500,
+    maxRPM: 12000,
+    hpApprox: 13,
+    restrictor: "Junior bazė + intake + exhaust restrictoriai + Mini ECU + mažesnis radiatorius",
+    minAge: 10,
+    notes: "Ta pati bazė kaip Junior, bet su agresyvesniais ribotuvais.",
+  },
+  "Micro MAX": {
+    base: "Rotax 125 MAX EVO (be PowerValve)",
+    peakRPM: 7000,
+    maxRPM: 11000,
+    hpApprox: 9.5,
+    restrictor: "Mini ribotuvai + modifikuotas exhaust + acceleration stop sleeve",
+    minAge: 8,
+    notes: "Mini bazė su papildomais ribotuvais. Vaikams 8-10 m.",
+  },
+  "DD2": {
+    base: "Rotax 125 MAX DD2 EVO",
+    peakRPM: 12000,
+    maxRPM: 14000,
+    hpApprox: 34,
+    restrictor: null,
+    minAge: 16,
+    notes: "Atskira bazė. 2 pavarų dėžė + priekiniai stabdžiai.",
+  },
+  "DD2 Masters": {
+    base: "Rotax 125 MAX DD2 EVO",
+    peakRPM: 12000,
+    maxRPM: 14000,
+    hpApprox: 34,
+    restrictor: null,
+    notes: "Tas pats DD2 variklis, tik amžiaus/svorio klasė skiriasi.",
+  },
+  
+  // ===== IAME X30 šeima — ta pati bazė, skiriasi tik exhaust restrictor =====
+  "X30 Senior": {
+    base: "IAME X30 125",
+    peakRPM: 11750,
+    maxRPM: 16000,
+    hpApprox: 30,
+    restrictor: null,
+    notes: "Pilna galia, be restrictor.",
+  },
+  "X30 Junior": {
+    base: "IAME X30 125",
+    peakRPM: 11000,
+    maxRPM: 16000,
+    hpApprox: 21,
+    restrictor: "Exhaust manifold restrictor (22.7mm-29mm, priklausomai nuo serijos)",
+    notes: "Ta pati bazė kaip Senior, skiriasi TIK exhaust restrictor. Galima konvertuoti pašalinus ribotuvą.",
+  },
+  "X30 Super 175": {
+    base: "IAME X30 Super 175",
+    peakRPM: 11500,
+    maxRPM: 15000,
+    hpApprox: 43,
+    restrictor: null,
+    notes: "Atskira bazė — didesnis darbinis tūris (175cc).",
+  },
+  
+  // ===== VORTEX ROK šeima =====
+  "ROK GP": {
+    base: "Vortex ROK GP 125",
+    peakRPM: 12500,
+    maxRPM: 15000,
+    hpApprox: 36,
+    restrictor: null,
+  },
+  "ROK Mini": {
+    base: "Vortex ROK Mini 60",
+    peakRPM: 11000,
+    maxRPM: 15500,
+    hpApprox: 10,
+    restrictor: null,
+  },
+  "ROK Shifter": {
+    base: "Vortex ROK Shifter 125",
+    peakRPM: 13900,
+    maxRPM: 14000,
+    hpApprox: 43,
+    restrictor: null,
+  },
+  "DVS (OK)": {
+    base: "Vortex DVS (OK) 125",
+    peakRPM: 11000,
+    maxRPM: 16000,
+    hpApprox: 38,
+    restrictor: null,
+  },
+  
+  // ===== MODENA =====
+  "MKZ KZ": {
+    base: "Modena MKZ 125",
+    peakRPM: 13000,
+    maxRPM: 15000,
+    hpApprox: 46,
+    restrictor: null,
+  },
+  
+  // ===== BRIGGS LO206 — Lietuvos / Baltic reglamentas =====
+  // SVARBU: Lietuvoje/Baltijos šalyse naudojamas PILNAS variklis be slide ribotuvo —
+  // klasės skiriasi TIK minimaliu kart+vairuotojo svoriu (BKA reglamentas).
+  // Šaltinis: Baltic Karting Academy + Lietuvos Kartingo Federacija
+  "LO206 Mini (LT/BKA)": {
+    base: "Briggs 206",
+    peakRPM: 5500,
+    maxRPM: 6100,
+    hpApprox: 8.8,
+    restrictor: null,
+    minWeight: 105,
+    notes: "BKA Mini kategorija. Pilna galia, be slide ribotuvo. Min kart+vairuotojo svoris 105 kg. Cilindras + galvutė užplombuoti.",
+    region: "LT/Baltic",
+  },
+  "LO206 Junior (LT/BKA)": {
+    base: "Briggs 206",
+    peakRPM: 5500,
+    maxRPM: 6100,
+    hpApprox: 8.8,
+    restrictor: null,
+    minWeight: 130,
+    notes: "BKA Junior kategorija. Pilna galia, be slide ribotuvo. Min kart+vairuotojo svoris ~130 kg.",
+    region: "LT/Baltic",
+  },
+  "LO206 Senior (LT/BKA)": {
+    base: "Briggs 206",
+    peakRPM: 5500,
+    maxRPM: 6100,
+    hpApprox: 8.8,
+    restrictor: null,
+    minWeight: 160,
+    notes: "BKA Senior kategorija. Pilna galia. Min kart+vairuotojo svoris ~160 kg.",
+    region: "LT/Baltic",
+  },
+  "LO206 Master (LT/BKA)": {
+    base: "Briggs 206",
+    peakRPM: 5500,
+    maxRPM: 6100,
+    hpApprox: 8.8,
+    restrictor: null,
+    minWeight: 175,
+    notes: "BKA Master kategorija. Pilna galia. Min kart+vairuotojo svoris ~175 kg. Vyresniems vairuotojams.",
+    region: "LT/Baltic",
+  },
+  
+  // ===== TILLOTSON =====
+  "T4 Series": {
+    base: "Tillotson T225RS",
+    peakRPM: 6500,
+    maxRPM: 7500,
+    hpApprox: 15,
+    restrictor: null,
+    notes: "T225RS spec variklis. T4 Euro Cup 2026 — Lonato (ITA).",
+  },
+  
+  // ===== CIK-FIA TARPTAUTINĖS EUROPOS KLASĖS =====
+  // Šaltinis: fiakarting.com, Wikipedia (Karting European Championship 2026)
+  "OK (CIK-FIA)": {
+    base: "CIK-FIA OK 125",
+    peakRPM: 14000,
+    maxRPM: 16000,
+    hpApprox: 40,
+    restrictor: null,
+    notes: "CIK-FIA OK kategorija — pagrindinė direct-drive klasė. Drivers 14+. Min svoris 145 kg su vairuotoju. Push start, be sankabos, su PowerValve.",
+    region: "EU (CIK-FIA)",
+    minWeight: 145,
+  },
+  "OK-J (CIK-FIA)": {
+    base: "CIK-FIA OK-J 125",
+    peakRPM: 12500,
+    maxRPM: 14000,
+    hpApprox: 27,
+    restrictor: "Be PowerValve + mažesnis karbiuratorius (20mm)",
+    notes: "CIK-FIA OK-Junior kategorija. Drivers 12-14. Min svoris 140 kg. Push start, be PowerValve.",
+    region: "EU (CIK-FIA)",
+    minWeight: 140,
+  },
+  "OK-N (CIK-FIA A&D Senior)": {
+    base: "CIK-FIA OK-N 125",
+    peakRPM: 13000,
+    maxRPM: 15000,
+    hpApprox: 35,
+    restrictor: "Be PowerValve (no exhaust valve)",
+    notes: "CIK-FIA Arrive-and-Drive Senior klasė (nuo 2023). Drivers 14+. Tarp Senior X30/Rotax ir OK. Direct drive, push start.",
+    region: "EU (CIK-FIA)",
+  },
+  "OKN-J (CIK-FIA A&D Junior)": {
+    base: "CIK-FIA OK-N 125",
+    peakRPM: 11500,
+    maxRPM: 13500,
+    hpApprox: 25,
+    restrictor: "Be PowerValve + Junior restrictor",
+    notes: "CIK-FIA Arrive-and-Drive Junior klasė (nuo 2023). Drivers 12-14.",
+    region: "EU (CIK-FIA)",
+  },
+  "KZ (CIK-FIA)": {
+    base: "CIK-FIA KZ 125",
+    peakRPM: 13500,
+    maxRPM: 16000,
+    hpApprox: 50,
+    restrictor: null,
+    notes: "CIK-FIA KZ klasė — pagrindinė gearbox klasė nuo 2007. Drivers 15+. 6-speed mechaninė pavarų dėžė. Min svoris 175 kg. Priekiniai stabdžiai.",
+    region: "EU (CIK-FIA)",
+    minWeight: 175,
+  },
+  "KZ2 (CIK-FIA)": {
+    base: "CIK-FIA KZ 125",
+    peakRPM: 13500,
+    maxRPM: 16000,
+    hpApprox: 52,
+    restrictor: null,
+    notes: "CIK-FIA KZ2 — antras pagal greitį KZ klasė. Drivers 15+. 6-speed mechaninė (be servo). Min svoris 175 kg.",
+    region: "EU (CIK-FIA)",
+    minWeight: 175,
+  },
+  "KZ2 Masters (CIK-FIA)": {
+    base: "CIK-FIA KZ 125",
+    peakRPM: 13500,
+    maxRPM: 16000,
+    hpApprox: 52,
+    restrictor: null,
+    notes: "CIK-FIA KZ2 Masters klasė vyresniems vairuotojams. Tas pats variklis kaip KZ2.",
+    region: "EU (CIK-FIA)",
+  },
+  "60 Mini (CIK-FIA)": {
+    base: "CIK-FIA 60 Mini",
+    peakRPM: 13000,
+    maxRPM: 15500,
+    hpApprox: 11,
+    restrictor: null,
+    notes: "CIK-FIA 60cc Mini klasė. Champions of the Future. Vaikams 8-12 m.",
+    region: "EU (CIK-FIA)",
+  },
+};
+
+// ============================================================
+// BACKWARD COMPATIBILITY — ENGINE_METADATA su naujais duomenimis
+// (algoritmai naudoja šitą — palieku, kad nereiktų visur perrašinėti)
+// ============================================================
+const ENGINE_METADATA = Object.fromEntries(
+  Object.entries(ENGINE_CLASSES).map(function([className, classData]) {
+    var base = ENGINE_BASES[classData.base];
+    var combined = {
+      // Iš bazės
+      stroke: base.stroke,
+      hasGearbox: base.hasGearbox,
+      gears: base.gears,
+      frontBrake: base.frontBrake,
+      displacement: base.displacement,
+      family: base.family,
+      // Iš klasės
+      peakRPM: classData.peakRPM,
+      maxRPM: classData.maxRPM,
+      hpApprox: classData.hpApprox,
+      restrictor: classData.restrictor,
+      notes: classData.notes,
+      // Šaltinis iš bazės
+      source: base.source,
+      engineBase: classData.base,
+    };
+    return [className, combined];
+  })
+);
 
 // Brake configuration by engine — does it have front brakes?
 // Uses ENGINE_METADATA for precise lookup, fallback to keyword detection.
@@ -1016,10 +1512,122 @@ function engineHasGearbox(engineModel) {
   return ENGINE_METADATA[engineModel]?.hasGearbox === true;
 }
 
+/**
+ * Ar variklio duomenys patikrinti iš oficialių šaltinių?
+ * Jei UNVERIFIED — rekomendacijos turi pridėti įspėjimą.
+ */
+function isEngineDataVerified(engineModel) {
+  const meta = ENGINE_METADATA[engineModel];
+  if (!meta) return false;
+  return meta.source && meta.source !== "UNVERIFIED";
+}
+
+function getEngineDataSource(engineModel) {
+  return ENGINE_METADATA[engineModel]?.source || null;
+}
+
+// ============================================================
+// NAUJOS ARCHITEKTŪROS HELPER'IAI
+// ============================================================
+
+/**
+ * Grąžina variklio bazės pavadinimą pagal klasę.
+ * Pvz., "Junior MAX" → "Rotax 125 MAX EVO (be PowerValve)"
+ */
+function getEngineBase(engineClass) {
+  return ENGINE_CLASSES[engineClass]?.base || null;
+}
+
+/**
+ * Grąžina pilną bazės info objektą.
+ * Naudinga rodyti vartotojui bazės aprašymą.
+ */
+function getEngineBaseInfo(engineClass) {
+  const baseName = getEngineBase(engineClass);
+  if (!baseName) return null;
+  return ENGINE_BASES[baseName] || null;
+}
+
+/**
+ * Grąžina ribotuvo info (jeigu klasė turi).
+ * Pvz., "LO206 Cadet" → "Blue slide #555734 (.520\" opening)"
+ */
+function getClassRestrictor(engineClass) {
+  return ENGINE_CLASSES[engineClass]?.restrictor || null;
+}
+
+/**
+ * Grąžina pastabą apie konkretęklasę.
+ */
+function getClassNotes(engineClass) {
+  return ENGINE_CLASSES[engineClass]?.notes || null;
+}
+
+/**
+ * Visi klasių, kurios naudoja TĄ PAČIĄ bazę.
+ * Pvz., "Junior MAX" → ["Junior MAX", "Mini MAX", "Micro MAX"]
+ * Naudinga rodyti "convertible classes" info.
+ */
+function getRelatedClasses(engineClass) {
+  const baseName = getEngineBase(engineClass);
+  if (!baseName) return [];
+  return Object.entries(ENGINE_CLASSES)
+    .filter(([_, data]) => data.base === baseName)
+    .map(([className]) => className);
+}
+
+/**
+ * Patikrinti, ar dvi klasės yra konvertuojamos (ta pati bazė)
+ */
+function areClassesConvertible(class1, class2) {
+  return getEngineBase(class1) === getEngineBase(class2);
+}
+
+// PADANGOS — TIK PATIKRINTI GAMINIAI (web verified)
+// PADANGOS — TIK PATVIRTINTI gaminiai iš Romo užpildytos lentelės (2026-06-08)
+// Su oficialiomis spalvomis ir kategorijomis
+// Pastaba: Mojo ir Vega XM3 — produktai realiai egzistuoja (mojotyres.com, vegausa.com),
+// nors ⚠️ Partial duomenyse — palikti, nes tai Rotax MAX spec ir Dovydo realiai naudojami
 const TIRE_BRANDS = [
-  "Mojo D5", "Mojo D2", "Mojo C2", "Vega XH3", "Vega SL3", "Vega XM", "Vega XL4",
-  "LeCont", "MG FZ", "MG SH", "MG Yellow", "Bridgestone YJL", "Bridgestone YLB",
-  "Komet K1H", "Komet K2H", "Kitos",
+  // === MOJO (mojotyres.com — Rotax MAX oficialūs) ===
+  "Mojo D5",                   // Senior MAX & DD2 — Rotax spec medium
+  "Mojo D2",                   // Junior MAX
+  "Mojo C2",                   // Mini/Micro MAX
+  "Mojo CW",                   // Senior Wet
+  "Mojo W5",                   // Universal Rain
+  "Mojo W2",                   // Junior Rain
+  
+  // === VEGA CIK-FIA (vegatyres.com — oficialiai patvirtinta) ===
+  "Vega XM4 (White)",          // CIK-FIA Prime medium 2024-2026
+  "Vega XM3 (White)",          // CIK-FIA Prime medium (ankstesnis, vis dar plačiai naudojamas)
+  "Vega XH4 (Green)",          // CIK-FIA Option hard
+  "Vega M1 (Red)",             // CIK-FIA Mini — jauniems vairuotojams
+  "Vega W6 (Rain)",            // CIK-FIA Rain
+  "Vega WM1 (Mini Rain)",      // CIK-FIA Mini Rain
+  
+  // === VEGA SL serija (vegatyres.com) ===
+  "Vega SL3 (Blue)",           // Club/regioninis
+  "Vega SL4 (Red)",            // Club/Endurance
+  
+  // === VEGA 6" serija (vegausa.com — 4T/Sprint/Endurance) ===
+  "Vega XHE (Green 6\")",      // 4T/Oval/US medium-hard
+  "Vega MCS (Yellow 6\")",     // 4T/Sprint soft-medium
+  "Vega MCM (White 6\")",      // 4T/Sprint medium
+  "Vega MDH (Blue 6\")",       // 4T/Endurance hard
+  "Vega VAH (Red 5\")",        // 4T/Sprint medium-hard
+  
+  // === MG TIRES (mgtires.com — CIK-FIA) ===
+  "MG SH2 (Red)",              // CIK-FIA hard
+  "MG SM2 (Yellow)",           // CIK-FIA medium
+  "MG SW2 (Rain)",             // CIK-FIA wet
+  
+  // === LeCont (kartingaustralia.com — KA spec) ===
+  "LeCont LH03",               // KA Australia hard 2022-2026
+  
+  // === EVINCO (evincotires.com — SKUSA) ===
+  "Evinco SKH2 (Blue)",        // SKUSA hard
+  
+  "Kitos",
 ];
 
 const TELEMETRY_OPTIONS = [
@@ -3157,7 +3765,7 @@ function SessionForm({ session, history, profile, onSave, onCancel }) {
         </div>
       </div>
       <div style={{ fontSize: 10, color: C.dim, marginTop: 4 }}>
-        💡 Rotax Senior limit ~25h iki rebuild. Vega Whites sweet spot 4-6 ciklai.
+        💡 Rotax Senior limit ~25h iki rebuild. Vega XM3 (White) sweet spot 4-6 ciklai.
       </div>
       
       </CollapsibleSection>
@@ -4376,7 +4984,7 @@ function DataNeedsView() {
 // ============================================================
 // REKOMENDACIJŲ EKRANAS (atskira tabai)
 // ============================================================
-function RecommendationsView({ sessions }) {
+function RecommendationsView({ sessions, profile }) {
   const todays = sessions.filter(s => s.date === TODAY);
   const baseline = sessions.filter(s => s.date !== TODAY);
   
@@ -4385,9 +4993,95 @@ function RecommendationsView({ sessions }) {
   
   const bestEver = sessions.reduce((b, s) => (s.bestLap && (!b || s.bestLap < b.bestLap)) ? s : b, null);
   
+  // Patikrinti, ar variklio duomenys yra verifikuoti
+  const engineVerified = profile?.engineModel ? isEngineDataVerified(profile.engineModel) : false;
+  const engineSource = profile?.engineModel ? getEngineDataSource(profile.engineModel) : null;
+  
+  // Variklio bazės info (nauja architektūra)
+  const engineBaseInfo = profile?.engineModel ? getEngineBaseInfo(profile.engineModel) : null;
+  const engineBaseName = profile?.engineModel ? getEngineBase(profile.engineModel) : null;
+  const classRestrictor = profile?.engineModel ? getClassRestrictor(profile.engineModel) : null;
+  const classNotes = profile?.engineModel ? getClassNotes(profile.engineModel) : null;
+  const relatedClasses = profile?.engineModel ? getRelatedClasses(profile.engineModel) : [];
+  
   return (
     <div>
       <div style={styles.h2}>Rekomendacijos</div>
+      
+      {/* Įspėjimas, jei variklio duomenys nepatikrinti */}
+      {profile?.engineModel && !engineVerified && (
+        <div style={{ padding: 12, background: "#1c1810", border: `1px solid #854d0e`, color: "#fde68a", fontSize: 12, borderRadius: 8, marginBottom: 12, lineHeight: 1.5 }}>
+          ⚠ <strong>Variklio duomenys nepatikrinti</strong><br/>
+          {profile.engineModel} parametrai (peakRPM, maxRPM, HP) DK Kart sistemoje dar nėra oficialiai patvirtinti iš gamintojo dokumentacijos. 
+          Rekomendacijos gali būti netikslios. Patikrink savo variklio specifikacijas oficialioje gamintojo svetainėje 
+          arba pateik GitHub'e patikrintus duomenis.
+        </div>
+      )}
+      
+      {/* Variklio bazės info kortelė */}
+      {engineBaseInfo && engineVerified && (
+        <div style={{ padding: 14, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: C.dim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>
+            🔧 Variklio bazė
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.accent, marginBottom: 6 }}>
+            {engineBaseName}
+          </div>
+          <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 8 }}>
+            {engineBaseInfo.description}
+          </div>
+          
+          {classRestrictor && (
+            <div style={{ padding: 8, background: "#1f1815", border: "1px solid #4b3624", borderRadius: 6, marginTop: 8 }}>
+              <div style={{ fontSize: 10, color: "#fbbf24", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                ⚙ Klasės ribotuvas
+              </div>
+              <div style={{ fontSize: 12, color: "#fde68a" }}>{classRestrictor}</div>
+            </div>
+          )}
+          
+          {ENGINE_CLASSES[profile.engineModel]?.minWeight && (
+            <div style={{ padding: 8, background: "#10241b", border: "1px solid #14532d", borderRadius: 6, marginTop: 8 }}>
+              <div style={{ fontSize: 10, color: "#86efac", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                ⚖ Min kart+vairuotojo svoris
+              </div>
+              <div style={{ fontSize: 12, color: "#bbf7d0" }}>
+                {ENGINE_CLASSES[profile.engineModel].minWeight} kg
+                {ENGINE_CLASSES[profile.engineModel]?.region && (
+                  <span style={{ marginLeft: 8, color: "#86efac", fontSize: 10 }}>
+                    ({ENGINE_CLASSES[profile.engineModel].region})
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {classNotes && (
+            <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.5, marginTop: 8, fontStyle: "italic" }}>
+              💡 {classNotes}
+            </div>
+          )}
+          
+          {relatedClasses.length > 1 && (
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 10, color: C.dim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                🔄 Konvertuojamos klasės (ta pati bazė)
+              </div>
+              <div style={{ fontSize: 11, color: C.muted }}>
+                {relatedClasses.filter(c => c !== profile.engineModel).join(", ")}
+              </div>
+            </div>
+          )}
+          
+          {engineSource && (
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}`, fontSize: 10, color: C.dim }}>
+              📚 Šaltinis: <a href={engineSource} target="_blank" rel="noopener" style={{ color: C.accent, textDecoration: "none" }}>
+                {engineSource.replace(/^https?:\/\//, "").substring(0, 40)}…
+              </a>
+            </div>
+          )}
+        </div>
+      )}
       
       {!lastSession ? (
         <div style={{ ...styles.card, textAlign: "center", padding: 40 }}>
@@ -4430,7 +5124,7 @@ function RecommendationsView({ sessions }) {
           <div>🪡 <strong>Adata:</strong> pozicija 2 (riebesnis posūkiuose)</div>
           <div>📍 <strong>Toe:</strong> +1 mm (stabilumo bazė)</div>
           <div>📐 <strong>Camber:</strong> -1</div>
-          <div>🛞 <strong>Padangos cold:</strong> Vega Whites 0.63F / 0.57R → hot 0.80 bar</div>
+          <div>🛞 <strong>Padangos cold:</strong> Vega XM3 (White) 0.63F / 0.57R → hot 0.80 bar</div>
           <div>💧 <strong>Radiatorius:</strong> ~30% užklijuotas (vandens t° į 55-60°C)</div>
         </div>
       </div>
@@ -4602,21 +5296,21 @@ const DOVYDAS_BASELINE_SESSIONS = [
   { id: "dov_2026-05-22_s6", date: "2026-05-22", time: "15:54", track: "Anykščiai", driver: "Dovydas",
     sessionType: "training",
     airTemp: 18, pressure: 1019, humidity: "", weather: "Sausa", trackTemp: "",
-    tireBrand: "Vega Whites", tireAge: "naujos",
+    tireBrand: "Vega XM3 (White)", tireAge: "naujos",
     cold_F: 0.70, cold_R: 0.65, hot_F: 0.98, hot_R: 0.92,
     chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "+1mm", camber: "-1",
     gear_F: 12, gear_R: 74, mainJet: 135, needle: 4, airScrew: "atsuktas",
     bestLap: 39.686, avgLap: 39.95, std: 0.21, lapCount: 12,
     waterMin: 35.0, waterMax: 51.0, waterAvg: 47.5, egtMax: "", egtAvg: "",
     rpmSustainedStraight: 13420, rpmNearTop: 13420, pedalEventsPerLap: "", topSpeedP99: 108.5, topSpeedMax: 110.2,
-    notes: "🎯 SUB-40 PASIEKTA. 3 sub-40 ratai. Trumpesnis gear (12/74) padėjo posūkių išvažiavime. Naujos Vega Whites + camber -1 + toe +1mm.", weight: 155,
+    notes: "🎯 SUB-40 PASIEKTA. 3 sub-40 ratai. Trumpesnis gear (12/74) padėjo posūkių išvažiavime. Naujos Vega XM3 (White) + camber -1 + toe +1mm.", weight: 155,
     photos: {} },
   
   // ===== D3: 2026-05-23 (RACE DAY — etapas) =====
   { id: "dov_2026-05-23_q1", date: "2026-05-23", time: "10:15", track: "Anykščiai", driver: "Dovydas",
     sessionType: "qualifying",
     airTemp: 16, pressure: 1021, humidity: "", weather: "Sausa", trackTemp: "",
-    tireBrand: "Vega Whites", tireAge: "2 sesijos",
+    tireBrand: "Vega XM3 (White)", tireAge: "2 sesijos",
     cold_F: 0.70, cold_R: 0.65, hot_F: 0.95, hot_R: 0.90,
     chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "+1mm", camber: "-1",
     gear_F: 12, gear_R: 74, mainJet: 135, needle: 2, airScrew: "atsuktas",
@@ -4628,7 +5322,7 @@ const DOVYDAS_BASELINE_SESSIONS = [
   { id: "dov_2026-05-23_r1", date: "2026-05-23", time: "13:30", track: "Anykščiai", driver: "Dovydas",
     sessionType: "race_event",
     airTemp: 19, pressure: 1021, humidity: "", weather: "Sausa", trackTemp: "",
-    tireBrand: "Vega Whites", tireAge: "3 sesijos",
+    tireBrand: "Vega XM3 (White)", tireAge: "3 sesijos",
     cold_F: 0.70, cold_R: 0.65, hot_F: 0.97, hot_R: 0.92,
     chassisAxle: "N", caster: "", trackWidthF: "1.5 hubs", trackWidthR: 140, seatPos: "", torsion: "", toe: "+1mm", camber: "-1",
     gear_F: 12, gear_R: 74, mainJet: 135, needle: 2, airScrew: "atsuktas",
@@ -4643,12 +5337,11 @@ const DOVYDAS_BASELINE_SESSIONS = [
 // kad išplėstum / apribotum prieigą.
 // Tipas: { code: "KODAS", note: "Kam skirta", expiresAt?: "YYYY-MM-DD" }
 const VALID_INVITE_CODES = [
-   { code: "DK-DOVYDAS-2026", note: "Dovydas (savininkas)" },
-  { code: "DK-JURGIS-2026", note: "JURGIS #1" },
-  { code: "DK-RYTIS-2026", note: "RYTIS #2" },
-  { code: "DK-VEJAS-2026", note: "Vejas #3" },
+  { code: "DK-DOVYDAS-2026", note: "Dovydas (savininkas)" },
+  { code: "DK-TEAM-001", note: "Komandos draugas #1" },
+  { code: "DK-TEAM-002", note: "Komandos draugas #2" },
+  { code: "DK-TEAM-003", note: "Komandos draugas #3" },
   { code: "DK-TEAM-004", note: "Komandos draugas #4" },
-
 ];
 
 const INVITE_CODE_KEY = "dkkart:invite_code:v1";
@@ -5414,7 +6107,7 @@ export default function DKKart() {
             />
           ) : (
             <>
-              {tab === "recommendations" && <RecommendationsView sessions={sessions} />}
+              {tab === "recommendations" && <RecommendationsView sessions={sessions} profile={profile} />}
               {tab === "sessions" && <SessionList sessions={sessions} onAdd={() => setEditing({})} onEdit={setEditing} onDelete={handleDelete} onImportShared={handleImportShared} />}
               {tab === "compare" && <CompareView sessions={sessions} />}
               {tab === "needs" && <DataNeedsView />}
