@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 
 // ============================================================
@@ -2824,15 +2824,29 @@ function SetupWizard({ initialProfile, onComplete, onSkip }) {
 // SETTINGS VIEW (editable profile)
 // ============================================================
 
-function SettingsView({ profile, onSave, onReset, onLoadBaseline }) {
+function SettingsView({ profile, onSave, onReset, onLoadBaseline, onExport, onImport, sessionCount }) {
   const [p, setP] = useState(profile);
   const [editing, setEditing] = useState(false);
+  const fileInputRef = useRef(null);
   
   useEffect(() => { setP(profile); }, [profile]);
   
   if (editing) {
     return <SetupWizard initialProfile={p} onComplete={(newP) => { onSave(newP); setEditing(false); }} onSkip={() => setEditing(false)} />;
   }
+  
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+  
+  const handleFileSelected = (e) => {
+    const file = e.target.files?.[0];
+    if (file && onImport) {
+      onImport(file);
+      // Išvalyti input, kad tas pats failas galėtų būti pasirinktas iš naujo
+      e.target.value = "";
+    }
+  };
   
   return (
     <div>
@@ -2900,6 +2914,78 @@ function SettingsView({ profile, onSave, onReset, onLoadBaseline }) {
       )}
       
       <button style={{ ...styles.btn, marginTop: 16 }} onClick={() => setEditing(true)}>Redaguoti profilį</button>
+      
+      {/* ====== DUOMENŲ EKSPORTAS / IMPORTAS ====== */}
+      {(onExport || onImport) && (
+        <>
+          <div style={{ ...styles.h3, marginTop: 24, color: C.accent }}>💾 Duomenų atsarginė kopija</div>
+          <div style={{ ...styles.card, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5, marginBottom: 12 }}>
+              Sesijos saugomos tik šiame įrenginyje. <strong>Reguliariai daryk backup'us</strong>, kad jie nedingtų po naršyklės atnaujinimo, įrenginio pakeitimo ar PWA reinstalacijos.
+            </div>
+            
+            {sessionCount > 0 && (
+              <div style={{ padding: 8, background: "#10241b", border: "1px solid #14532d", borderRadius: 6, marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: "#86efac" }}>
+                  📊 Šiuo metu šiame profilyje: <strong>{sessionCount} sesija(os)</strong>
+                </div>
+              </div>
+            )}
+            
+            {/* EKSPORTAS */}
+            {onExport && (
+              <>
+                <div style={{ fontSize: 11, color: C.dim, textTransform: "uppercase", letterSpacing: 1, marginTop: 8, marginBottom: 6 }}>
+                  📤 Eksportas (atsisiųsti JSON failą)
+                </div>
+                <button 
+                  style={{ ...styles.btn, width: "100%", marginTop: 4 }} 
+                  onClick={() => onExport("currentDriver")}
+                >
+                  💾 Pilnas backup (šio vairuotojo viskas)
+                </button>
+                <button 
+                  style={{ ...styles.btnGhost, width: "100%", marginTop: 6 }} 
+                  onClick={() => onExport("raceEventsOnly")}
+                >
+                  🏁 Tik etapo sesijos (dalintis su komanda)
+                </button>
+                <button 
+                  style={{ ...styles.btnGhost, width: "100%", marginTop: 6 }} 
+                  onClick={() => onExport("all")}
+                >
+                  📦 Pilnas backup (VISI vairuotojai)
+                </button>
+              </>
+            )}
+            
+            {/* IMPORTAS */}
+            {onImport && (
+              <>
+                <div style={{ fontSize: 11, color: C.dim, textTransform: "uppercase", letterSpacing: 1, marginTop: 14, marginBottom: 6 }}>
+                  📂 Importas iš failo
+                </div>
+                <button 
+                  style={{ ...styles.btnGhost, width: "100%", borderColor: C.accent, color: C.accent }} 
+                  onClick={handleImportClick}
+                >
+                  📥 Pasirinkti JSON failą
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleFileSelected}
+                  style={{ display: "none" }}
+                />
+                <div style={{ fontSize: 10, color: C.dim, marginTop: 6, lineHeight: 1.5 }}>
+                  💡 Importo metu galėsi pasirinkti: pridėti prie esamų sesijų, perrašyti aktyvų vairuotoją ar pridėti naują vairuotoją.
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
       
       {/* Baseline užkrovimo mygtukas — TIK savininkui */}
       {onLoadBaseline && (
@@ -5127,35 +5213,29 @@ function RecommendationsView({ sessions, profile }) {
         </>
       )}
       
-      <div style={{ ...styles.h3, marginTop: 24 }}>Optimali sąranga (pasiteisinusi)</div>
-      <div style={{ ...styles.card, background: "linear-gradient(135deg, #1f1611 0%, #0a0a0b 100%)", border: `2px solid ${C.accent}` }}>
-        <div style={{ fontSize: 13, lineHeight: 2 }}>
-          <div>⚙️ <strong>Gear:</strong> 12/74 (sweet spot, peak power zona)</div>
-          <div>⛽ <strong>Main jet:</strong> 135 (žvakė rodo idealų mišinį 20°C)</div>
-          <div>🪡 <strong>Adata:</strong> pozicija 2 (riebesnis posūkiuose)</div>
-          <div>📍 <strong>Toe:</strong> +1 mm (stabilumo bazė)</div>
-          <div>📐 <strong>Camber:</strong> -1</div>
-          <div>🛞 <strong>Padangos cold:</strong> Vega XM3 (White) 0.63F / 0.57R → hot 0.80 bar</div>
-          <div>💧 <strong>Radiatorius:</strong> ~30% užklijuotas (vandens t° į 55-60°C)</div>
-        </div>
-      </div>
-      
-      <div style={{ ...styles.h3, marginTop: 16 }}>🎯 Likę rezervai sub-39 link</div>
-      <div style={styles.card}>
-        <div style={{ fontSize: 13, lineHeight: 1.7 }}>
-          <div style={{ color: C.good, fontWeight: 600, marginBottom: 4 }}>🥇 Vandens temperatūra (-0.15s)</div>
-          <div style={{ color: C.muted, fontSize: 12, marginBottom: 10 }}>Vis dar 41-50°C. Užklijuoti 30% radiatoriaus.</div>
-          
-          <div style={{ color: C.accent, fontWeight: 600, marginBottom: 4 }}>🥈 Padangos slėgis priekyje (-0.10s)</div>
-          <div style={{ color: C.muted, fontSize: 12, marginBottom: 10 }}>Cold 0.55-0.58 vietoj 0.63 → daugiau "kibimo" priekyje → mažiau pedalo darbo posūkyje.</div>
-          
-          <div style={{ color: C.info, fontWeight: 600, marginBottom: 4 }}>🥉 Posūkis #3-#4 segmentas (-0.20s)</div>
-          <div style={{ color: C.muted, fontSize: 12, marginBottom: 10 }}>16 pedalo judesių per 5s — daugiausia visame rate. Caster +1 ar siauresnis galas (138cm) mažintų pedalo darbo poreikį.</div>
-          
-          <div style={{ color: "#a855f7", fontWeight: 600, marginBottom: 4 }}>🌡️ EGT prijungimas (kritiška ilgalaikiui progresui)</div>
-          <div style={{ color: C.muted, fontSize: 12 }}>Be EGT mišinio derinimas yra spėjimas. Prijungti Temp 2 kanalą prie MyChron 5S 2T.</div>
-        </div>
-      </div>
+      {/* Optimali sąranga — generuojama iš geriausios praeities sesijos */}
+      {bestEver && bestEver !== lastSession && (
+        <>
+          <div style={{ ...styles.h3, marginTop: 24 }}>Geriausia sąranga (iš praeities)</div>
+          <div style={{ ...styles.card, background: "linear-gradient(135deg, #1f1611 0%, #0a0a0b 100%)", border: `2px solid ${C.accent}` }}>
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>
+              Pagal {bestEver.date} sesiją ({bestEver.bestLap?.toFixed(3)}s)
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 2 }}>
+              {(bestEver.gear_F && bestEver.gear_R) && <div>⚙️ <strong>Gear:</strong> {bestEver.gear_F}/{bestEver.gear_R}</div>}
+              {bestEver.mainJet && <div>⛽ <strong>Main jet:</strong> {bestEver.mainJet}</div>}
+              {bestEver.needle !== "" && bestEver.needle != null && <div>🪡 <strong>Adata:</strong> pozicija {bestEver.needle}</div>}
+              {bestEver.toe && <div>📍 <strong>Toe:</strong> {bestEver.toe}</div>}
+              {bestEver.camber && <div>📐 <strong>Camber:</strong> {bestEver.camber}</div>}
+              {bestEver.tireBrand && (bestEver.cold_F || bestEver.cold_R) && (
+                <div>🛞 <strong>Padangos cold:</strong> {bestEver.tireBrand} {bestEver.cold_F}F / {bestEver.cold_R}R bar</div>
+              )}
+              {bestEver.airTemp && <div>🌡️ <strong>Oro temp:</strong> {bestEver.airTemp}°C</div>}
+              {bestEver.weather && <div>☁️ <strong>Sąlygos:</strong> {bestEver.weather}</div>}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -5964,8 +6044,42 @@ export default function DKKart() {
   
   const handleSaveSession = (s) => {
     const exists = sessions.find(x => x.id === s.id);
+    const isNew = !exists;
     save(exists ? sessions.map(x => x.id === s.id ? s : x) : [...sessions, s]);
     setEditing(null);
+    
+    // Po race event sesijos išsaugojimo — pasiūlyti backup'ą
+    // (tik naujom sesijom, ne redagavimam)
+    if (isNew && s.sessionType === "race_event") {
+      // Patikrinti, kada buvo paskutinis priminimas
+      const lastReminderKey = "dkkart:lastBackupReminder";
+      const checkReminder = async () => {
+        try {
+          const lastR = await window.storage.get(lastReminderKey).catch(() => null);
+          const lastTime = lastR ? parseInt(lastR.value, 10) : 0;
+          const now = Date.now();
+          const daysSince = (now - lastTime) / (1000 * 60 * 60 * 24);
+          
+          // Priminti tik jei nebuvo priminta paskutines 3 dienas
+          if (daysSince > 3) {
+            setTimeout(() => {
+              const wantBackup = window.confirm(
+                "🏁 Etapo sesija išsaugota!\n\n" +
+                "💾 Patarimas: padaryk JSON backup'ą po varžybų dienos.\n\n" +
+                "Sesijos saugomos tik šiame įrenginyje — jei naršyklė išvalys cache'ą, duomenys dings.\n\n" +
+                "Ar nori dabar atsisiųsti backup'ą?"
+              );
+              if (wantBackup) {
+                handleExportData("currentDriver");
+              }
+              // Įsiminti, kad jau buvo priminta
+              window.storage.set(lastReminderKey, String(Date.now())).catch(() => {});
+            }, 500);
+          }
+        } catch (e) { /* ignore */ }
+      };
+      checkReminder();
+    }
   };
   
   const handleDelete = (id) => save(sessions.filter(s => s.id !== id));
@@ -6026,6 +6140,190 @@ export default function DKKart() {
     } catch (e) {
       console.error("Baseline load error:", e);
       alert("❌ Klaida užkraunant baseline sesijas: " + e.message);
+    }
+  };
+  
+  // ============================================================
+  // EKSPORTAS — atsisiųsti visus duomenis kaip JSON failą
+  // ============================================================
+  // Vartotojas gali išsaugoti backup'ą savo telefone arba kompiuteryje
+  // ir grįžti į juos vėliau jei localStorage būtų išvalytas
+  const handleExportData = async (scope) => {
+    // scope: "all" | "currentDriver" | "raceEventsOnly"
+    try {
+      const exportData = {
+        version: "1.0",
+        exportedAt: new Date().toISOString(),
+        appName: "DK Kart",
+        scope,
+        drivers: [],
+      };
+      
+      if (scope === "currentDriver") {
+        // Tik aktyvus vairuotojas + jo sesijos + profilis
+        const driver = drivers.find(d => d.id === activeDriverId);
+        if (!driver) {
+          alert("Nepavyko rasti vairuotojo");
+          return;
+        }
+        exportData.drivers = [{
+          ...driver,
+          sessions: sessions,
+          profile: profile,
+        }];
+      } else if (scope === "raceEventsOnly") {
+        // Tik etapo sesijos (dalintis su komanda)
+        const driver = drivers.find(d => d.id === activeDriverId);
+        if (!driver) {
+          alert("Nepavyko rasti vairuotojo");
+          return;
+        }
+        const raceSessions = sessions.filter(s => s.sessionType === "race_event");
+        if (raceSessions.length === 0) {
+          alert("Šiame profilyje nėra etapo sesijų. Eksportui paženk sesijas kaip 'race_event'.");
+          return;
+        }
+        exportData.drivers = [{
+          ...driver,
+          sessions: raceSessions,
+          profile: profile,
+        }];
+      } else {
+        // VISI vairuotojai (pilnas backup'as)
+        for (const d of drivers) {
+          const sessR = await window.storage.get(getSessionsKey(d.id)).catch(() => null);
+          const profR = await window.storage.get(getProfileKey(d.id)).catch(() => null);
+          exportData.drivers.push({
+            ...d,
+            sessions: sessR ? JSON.parse(sessR.value) : [],
+            profile: profR ? JSON.parse(profR.value) : null,
+          });
+        }
+      }
+      
+      // Sukurti JSON blob ir parsisiųsti
+      const jsonStr = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      
+      // Failo pavadinimas su data ir scope
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const timeStr = now.toTimeString().slice(0, 5).replace(":", "");
+      const driverName = scope === "currentDriver" || scope === "raceEventsOnly"
+        ? (drivers.find(d => d.id === activeDriverId)?.name || "driver").replace(/\s+/g, "_")
+        : "all";
+      const scopeStr = scope === "raceEventsOnly" ? "race" : scope === "currentDriver" ? "full" : "backup";
+      const filename = `dkkart_${driverName}_${dateStr}_${timeStr}_${scopeStr}.json`;
+      
+      // Sukurti download link ir spustelėti
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      const totalSessions = exportData.drivers.reduce((sum, d) => sum + (d.sessions?.length || 0), 0);
+      alert(`✓ Eksportuota: ${filename}\n\n${exportData.drivers.length} vairuotojas(ai), ${totalSessions} sesija(os).\n\niPhone: failas išsaugotas Files app'e (Downloads).\nKompiuteryje: standartinis Downloads aplankas.`);
+    } catch (e) {
+      console.error("Export error:", e);
+      alert("❌ Klaida eksportuojant: " + e.message);
+    }
+  };
+  
+  // ============================================================
+  // IMPORTAS — užkrauti duomenis iš JSON failo
+  // ============================================================
+  const handleImportData = async (file) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      // Validacija
+      if (!data.version || !data.drivers || !Array.isArray(data.drivers)) {
+        alert("❌ Neatpažintas failo formatas. Tai turi būti DK Kart eksporto failas.");
+        return;
+      }
+      
+      const driverCount = data.drivers.length;
+      const sessionCount = data.drivers.reduce((sum, d) => sum + (d.sessions?.length || 0), 0);
+      
+      // Strategijos pasirinkimas
+      const mode = window.prompt(
+        `📂 Importas iš failo\n\n` +
+        `Faile: ${driverCount} vairuotojas(ai), ${sessionCount} sesija(os)\n` +
+        `Eksportuota: ${data.exportedAt ? new Date(data.exportedAt).toLocaleString() : "nežinoma"}\n\n` +
+        `Strategija (įvesk skaičių):\n` +
+        `1 = PRIDĖTI prie aktyvaus vairuotojo (vengia dublikatų)\n` +
+        `2 = PERRAŠYTI aktyvų vairuotoją (ištrina esamus)\n` +
+        `3 = PRIDĖTI naują vairuotoją (visa kopija)\n` +
+        `Tuščia = nutraukti`,
+        "1"
+      );
+      
+      if (!mode) return;
+      
+      if (mode === "1") {
+        // PRIDĖTI prie aktyvaus — kombinuoti sesijas vengiant dublikatų
+        const importedSessions = data.drivers.flatMap(d => d.sessions || []);
+        const existingIds = new Set(sessions.map(s => s.id));
+        const newSessions = importedSessions.filter(s => !existingIds.has(s.id));
+        if (newSessions.length === 0) {
+          alert("ℹ Visos sesijos jau yra įvestos (dublikatų aptikta).");
+          return;
+        }
+        const merged = [...sessions, ...newSessions];
+        await window.storage.set(getSessionsKey(activeDriverId), JSON.stringify(merged));
+        setSessions(merged);
+        alert(`✓ Pridėta ${newSessions.length} naujų sesijų. Iš viso: ${merged.length}`);
+        
+      } else if (mode === "2") {
+        // PERRAŠYTI aktyvų vairuotoją
+        if (!window.confirm(`⚠ Tai PERRAŠYS aktyvaus vairuotojo duomenis (${sessions.length} esamos sesijos bus ištrintos). Tęsti?`)) return;
+        const firstDriver = data.drivers[0];
+        if (firstDriver.sessions) {
+          await window.storage.set(getSessionsKey(activeDriverId), JSON.stringify(firstDriver.sessions));
+          setSessions(firstDriver.sessions);
+        }
+        if (firstDriver.profile) {
+          await window.storage.set(getProfileKey(activeDriverId), JSON.stringify(firstDriver.profile));
+          setProfile(firstDriver.profile);
+        }
+        alert(`✓ Aktyvus vairuotojas perrašytas. ${firstDriver.sessions?.length || 0} sesijos.`);
+        
+      } else if (mode === "3") {
+        // PRIDĖTI naują vairuotoją (visa kopija)
+        for (const importedDriver of data.drivers) {
+          // Sukurti naują driver objektą su nauju ID
+          const newId = "driver_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
+          const newDriver = {
+            id: newId,
+            name: importedDriver.name + " (imp.)",
+            createdAt: new Date().toISOString(),
+            pinHash: importedDriver.pinHash || null,
+          };
+          
+          // Pridėti į drivers
+          const updatedDrivers = [...drivers, newDriver];
+          await window.storage.set(DRIVERS_KEY, JSON.stringify(updatedDrivers));
+          setDrivers(updatedDrivers);
+          
+          // Įrašyti jo sesijas ir profilį
+          if (importedDriver.sessions) {
+            await window.storage.set(getSessionsKey(newId), JSON.stringify(importedDriver.sessions));
+          }
+          if (importedDriver.profile) {
+            await window.storage.set(getProfileKey(newId), JSON.stringify(importedDriver.profile));
+          }
+        }
+        alert(`✓ Pridėta ${data.drivers.length} naujas(-i) vairuotojas(-ai). Galite į juos perjungti per vairuotojo pasirinkimą.`);
+      }
+      
+    } catch (e) {
+      console.error("Import error:", e);
+      alert("❌ Klaida importuojant: " + e.message + "\n\nĮsitikinkite, kad failas yra teisingas DK Kart eksporto JSON.");
     }
   };
   
@@ -6167,7 +6465,7 @@ export default function DKKart() {
               {tab === "sessions" && <SessionList sessions={sessions} onAdd={() => setEditing({})} onEdit={setEditing} onDelete={handleDelete} onImportShared={handleImportShared} />}
               {tab === "compare" && <CompareView sessions={sessions} />}
               {tab === "needs" && <DataNeedsView />}
-              {tab === "settings" && <SettingsView profile={profile} onSave={saveProfile} onReset={handleResetProfile} onLoadBaseline={handleLoadBaseline} />}
+              {tab === "settings" && <SettingsView profile={profile} onSave={saveProfile} onReset={handleResetProfile} onLoadBaseline={handleLoadBaseline} onExport={handleExportData} onImport={handleImportData} sessionCount={sessions.length} />}
             </>
           )}
         </div>
